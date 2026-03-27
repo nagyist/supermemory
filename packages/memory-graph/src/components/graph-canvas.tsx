@@ -55,9 +55,6 @@ export const GraphCanvas = memo<ExtendedGraphCanvasProps>(function GraphCanvas({
 		typeof window !== "undefined" ? window.devicePixelRatio || 1 : 1,
 	)
 
-	// Node ID tracking for smart re-init
-
-
 	// All mutable render state in a single ref — the rAF loop reads from here
 	const s = useRef({
 		nodes,
@@ -240,9 +237,7 @@ export const GraphCanvas = memo<ExtendedGraphCanvasProps>(function GraphCanvas({
 			// Report viewport changes (zoom, pan, or simulation-driven node movement)
 			// so popover positions update. Covers: momentum, spring zoom, mouse drag, and sim.
 			const vpChanged =
-				vp.panX !== prevVpX ||
-				vp.panY !== prevVpY ||
-				vp.zoom !== prevVpZoom
+				vp.panX !== prevVpX || vp.panY !== prevVpY || vp.zoom !== prevVpZoom
 			if ((vpChanged || simActive) && cb.current.onViewportChange) {
 				cb.current.onViewportChange(vp.zoom)
 				prevVpX = vp.panX
