@@ -170,10 +170,18 @@ export function MemoryGraph({
 		// Drag end handled by InputHandler
 	}, [])
 
-	const handleViewportChange = useCallback((zoom: number) => {
-		setZoomDisplay(Math.round(zoom * 100))
-		setViewportVersion((v) => v + 1)
-	}, [])
+	const handleViewportChange = useCallback(
+		(zoom: number, popoverVisible: boolean) => {
+			setZoomDisplay(Math.round(zoom * 100))
+			// Only increment viewportVersion (which triggers popover repositioning
+			// via activePopoverPosition useMemo) when a popover is actually visible.
+			// This avoids 60fps React reconciliation during plain panning/zooming.
+			if (popoverVisible) {
+				setViewportVersion((v) => v + 1)
+			}
+		},
+		[],
+	)
 
 	// Navigation
 	const handleAutoFit = useCallback(() => {

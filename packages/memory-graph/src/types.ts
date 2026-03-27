@@ -163,7 +163,7 @@ export interface GraphCanvasProps {
 	onNodeClick: (nodeId: string | null) => void
 	onNodeDragStart: (nodeId: string) => void
 	onNodeDragEnd: () => void
-	onViewportChange?: (zoom: number) => void
+	onViewportChange?: (zoom: number, popoverVisible: boolean) => void
 	canvasRef?: React.RefObject<HTMLCanvasElement | null>
 	simulation?: import("./canvas/simulation").ForceSimulation
 	viewportRef?: React.RefObject<
