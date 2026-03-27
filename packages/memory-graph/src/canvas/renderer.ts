@@ -18,7 +18,8 @@ export interface RenderState {
 const edgeBatches = new Map<string, PreparedEdge[]>()
 
 // Cache for lightenColor results to avoid per-frame hex parsing
-let _lightenCache: { input: string; amount: number; result: string } | null = null
+let _lightenCache: { input: string; amount: number; result: string } | null =
+	null
 
 export function renderFrame(
 	ctx: CanvasRenderingContext2D,
@@ -522,7 +523,12 @@ function drawDocumentNode(
 	}
 
 	// Subtle gradient fill for document nodes
-	const grad = ctx.createLinearGradient(sx - half, sy - half, sx + half, sy + half)
+	const grad = ctx.createLinearGradient(
+		sx - half,
+		sy - half,
+		sx + half,
+		sy + half,
+	)
 	grad.addColorStop(0, colors.docFill)
 	grad.addColorStop(1, lightenColor(colors.docFill, 0.08))
 	ctx.fillStyle = grad
@@ -856,15 +862,28 @@ function drawDocOutline(
 
 /** Lighten a 6-digit hex color by a fraction (0-1). Cached to avoid per-frame parsing. */
 export function lightenColor(hex: string, amount: number): string {
-	if (_lightenCache && _lightenCache.input === hex && _lightenCache.amount === amount) {
+	if (
+		_lightenCache &&
+		_lightenCache.input === hex &&
+		_lightenCache.amount === amount
+	) {
 		return _lightenCache.result
 	}
 	const h = hex.replace("#", "")
 	// Only handle standard 6-digit hex; return input unchanged for other formats
 	if (h.length !== 6) return hex
-	const r = Math.min(255, Number.parseInt(h.substring(0, 2), 16) + Math.round(255 * amount))
-	const g = Math.min(255, Number.parseInt(h.substring(2, 4), 16) + Math.round(255 * amount))
-	const b = Math.min(255, Number.parseInt(h.substring(4, 6), 16) + Math.round(255 * amount))
+	const r = Math.min(
+		255,
+		Number.parseInt(h.substring(0, 2), 16) + Math.round(255 * amount),
+	)
+	const g = Math.min(
+		255,
+		Number.parseInt(h.substring(2, 4), 16) + Math.round(255 * amount),
+	)
+	const b = Math.min(
+		255,
+		Number.parseInt(h.substring(4, 6), 16) + Math.round(255 * amount),
+	)
 	const result = `#${r.toString(16).padStart(2, "0")}${g.toString(16).padStart(2, "0")}${b.toString(16).padStart(2, "0")}`
 	_lightenCache = { input: hex, amount, result }
 	return result

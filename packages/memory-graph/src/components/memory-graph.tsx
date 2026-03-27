@@ -4,13 +4,7 @@ import { VersionChainIndex } from "../canvas/version-chain"
 import type { ViewportState } from "../canvas/viewport"
 import { useGraphData } from "../hooks/use-graph-data"
 import { useGraphTheme } from "../hooks/use-graph-theme"
-import type {
-	GraphApiDocument,
-	GraphApiEdge,
-	GraphNode,
-	GraphThemeColors,
-	MemoryGraphProps,
-} from "../types"
+import type { GraphThemeColors, MemoryGraphProps } from "../types"
 import { GraphCanvas } from "./graph-canvas"
 import { Legend } from "./legend"
 import { LoadingIndicator } from "./loading-indicator"
@@ -52,6 +46,9 @@ export function MemoryGraph({
 	const [hoveredNode, setHoveredNode] = useState<string | null>(null)
 	const [selectedNode, setSelectedNode] = useState<string | null>(null)
 	const [zoomDisplay, setZoomDisplay] = useState(50)
+	// Monotonic counter that increments on any viewport change (pan or zoom)
+	// Used as a dependency proxy to recalculate popover positions
+	const [viewportVersion, setViewportVersion] = useState(0)
 
 	// Limit documents if maxNodes is set
 	const limitedDocuments = useMemo(() => {
@@ -175,6 +172,7 @@ export function MemoryGraph({
 
 	const handleViewportChange = useCallback((zoom: number) => {
 		setZoomDisplay(Math.round(zoom * 100))
+		setViewportVersion((v) => v + 1)
 	}, [])
 
 	// Navigation
@@ -455,6 +453,7 @@ export function MemoryGraph({
 		return nodes.find((n) => n.id === activeNodeId) ?? null
 	}, [activeNodeId, nodes])
 
+	// biome-ignore lint/correctness/useExhaustiveDependencies: zoomDisplay intentionally used as proxy for viewport state changes
 	const activePopoverPosition = useMemo(() => {
 		if (!activeNodeData || !viewportRef.current) return null
 		const vp = viewportRef.current

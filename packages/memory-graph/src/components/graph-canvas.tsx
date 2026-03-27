@@ -130,6 +130,7 @@ export const GraphCanvas = memo<ExtendedGraphCanvasProps>(function GraphCanvas({
 	}, [selectedNodeId])
 
 	// Create viewport + input handler (once per variant)
+	// biome-ignore lint/correctness/useExhaustiveDependencies: canvasRef and externalViewportRef are refs — mutations do not trigger re-renders, intentionally omitted
 	useLayoutEffect(() => {
 		const canvas = canvasRef.current
 		if (!canvas) return
@@ -154,7 +155,7 @@ export const GraphCanvas = memo<ExtendedGraphCanvasProps>(function GraphCanvas({
 				renderNeeded.current = true
 			},
 			onNodeClick: (id) => cb.current.onNodeClick(id),
-			onNodeDragStart: (id, node) => {
+			onNodeDragStart: (id, _node) => {
 				cb.current.onNodeDragStart(id)
 				cb.current.simulation?.reheat()
 			},
@@ -175,6 +176,7 @@ export const GraphCanvas = memo<ExtendedGraphCanvasProps>(function GraphCanvas({
 	const dpr = typeof window !== "undefined" ? window.devicePixelRatio || 1 : 1
 	dprRef.current = dpr
 
+	// biome-ignore lint/correctness/useExhaustiveDependencies: canvasRef is a ref — mutations do not trigger re-renders, intentionally omitted
 	useLayoutEffect(() => {
 		const canvas = canvasRef.current
 		if (!canvas || width === 0 || height === 0) return
@@ -196,6 +198,7 @@ export const GraphCanvas = memo<ExtendedGraphCanvasProps>(function GraphCanvas({
 	}, [width, height, dpr])
 
 	// Single render loop — runs for component lifetime, reads everything from refs
+	// biome-ignore lint/correctness/useExhaustiveDependencies: intentionally empty deps — all state read via refs inside tick(), not reactive props
 	useEffect(() => {
 		let lastReportedZoom = 0
 
@@ -244,13 +247,8 @@ export const GraphCanvas = memo<ExtendedGraphCanvasProps>(function GraphCanvas({
 				return
 			renderNeeded.current = false
 
-			// Throttled zoom reporting for NavigationControls
-			if (
-				vpMoving &&
-				cb.current.onViewportChange &&
-				Math.abs(vp.zoom - lastReportedZoom) > 0.005
-			) {
-				lastReportedZoom = vp.zoom
+			// Report viewport changes (zoom + pan) so popover positions update
+			if (vpMoving && cb.current.onViewportChange) {
 				cb.current.onViewportChange(vp.zoom)
 			}
 
