@@ -17,6 +17,9 @@ export interface RenderState {
 // Module-level reusable batch map – cleared each frame instead of reallocating
 const edgeBatches = new Map<string, PreparedEdge[]>()
 
+// Cache for lightenColor results to avoid per-frame hex parsing
+let _lightenCache: { input: string; amount: number; result: string } | null = null
+
 export function renderFrame(
 	ctx: CanvasRenderingContext2D,
 	nodes: GraphNode[],
@@ -247,6 +250,23 @@ function drawEdges(
 		if (!first) continue
 		const isDimmed = key.endsWith("|d")
 
+		// Draw glow pass behind version edges for visual emphasis
+		// Version edges share a distinct style key, so a batch is all-version or none
+		const isVersionBatch = first.isVersion
+		if (isVersionBatch && !isDimmed) {
+			ctx.save()
+			ctx.globalAlpha = 0.3
+			ctx.strokeStyle = first.style.color
+			ctx.lineWidth = first.style.width + 4
+			ctx.beginPath()
+			for (const e of batch) {
+				ctx.moveTo(e.startX, e.startY)
+				ctx.lineTo(e.endX, e.endY)
+			}
+			ctx.stroke()
+			ctx.restore()
+		}
+
 		ctx.globalAlpha = isDimmed ? 1 - state.dimProgress * 0.8 : 1
 		ctx.strokeStyle = first.style.color
 		ctx.lineWidth = first.style.width
@@ -258,10 +278,9 @@ function drawEdges(
 		}
 		ctx.stroke()
 
-		const versionEdges = batch.filter((e) => e.isVersion)
-		if (versionEdges.length > 0) {
+		if (isVersionBatch) {
 			ctx.fillStyle = first.style.color
-			for (const e of versionEdges) {
+			for (const e of batch) {
 				drawArrowHead(ctx, e.startX, e.startY, e.endX, e.endY, e.arrowSize)
 			}
 		}
@@ -377,8 +396,16 @@ function drawNodes(
 			)
 		}
 
-		if (isSelected || isHighlighted) {
-			drawGlow(ctx, screen.x, screen.y, screenSize, node.type, colors)
+		if (isSelected || isHighlighted || isHovered) {
+			drawGlow(
+				ctx,
+				screen.x,
+				screen.y,
+				screenSize,
+				node.type,
+				colors,
+				isHovered && !isSelected,
+			)
 		}
 	}
 
@@ -437,7 +464,7 @@ function drawNodes(
 
 		// Draw dimmed (superseded) memory dots at reduced opacity
 		if (dimmedDots.length > 0) {
-			ctx.globalAlpha = dimAlpha * 0.35
+			ctx.globalAlpha = dimAlpha * 0.3
 			ctx.fillStyle = colors.memFill
 			ctx.beginPath()
 			for (const d of dimmedDots) {
@@ -485,17 +512,31 @@ function drawDocumentNode(
 	const half = size * 0.5
 	const cornerR = 8 * (size / 50)
 
-	ctx.fillStyle = colors.docFill
+	// Drop shadow for selected/hovered nodes
+	if (isSelected || isHovered) {
+		ctx.save()
+		ctx.shadowColor = colors.accent
+		ctx.shadowBlur = isSelected ? 16 : 10
+		ctx.shadowOffsetX = 0
+		ctx.shadowOffsetY = 0
+	}
+
+	// Subtle gradient fill for document nodes
+	const grad = ctx.createLinearGradient(sx - half, sy - half, sx + half, sy + half)
+	grad.addColorStop(0, colors.docFill)
+	grad.addColorStop(1, lightenColor(colors.docFill, 0.08))
+	ctx.fillStyle = grad
+
 	ctx.strokeStyle =
-		isSelected || isHighlighted
-			? colors.accent
-			: isHovered
-				? colors.accent
-				: colors.docStroke
-	ctx.lineWidth = isSelected || isHighlighted ? 2 : 1
+		isSelected || isHighlighted || isHovered ? colors.accent : colors.docStroke
+	ctx.lineWidth = isSelected || isHighlighted ? 2.5 : isHovered ? 1.5 : 1
 	roundRect(ctx, sx - half, sy - half, size, size, cornerR)
 	ctx.fill()
 	ctx.stroke()
+
+	if (isSelected || isHovered) {
+		ctx.restore()
+	}
 
 	const innerSize = size * 0.72
 	const innerHalf = innerSize * 0.5
@@ -523,12 +564,13 @@ function drawMemoryNode(
 ): void {
 	const memData = node.data as MemoryNodeData
 	const isSuperseded = memData.isLatest === false
+	const isForgotten = memData.isForgotten
 	const radius = size * 0.5
 
-	// Dim superseded (non-latest) memory nodes
+	// Dim superseded (non-latest) memory nodes with strikethrough effect
 	if (isSuperseded && !isSelected && !isHovered) {
 		const prevAlpha = ctx.globalAlpha
-		ctx.globalAlpha = prevAlpha * 0.35
+		ctx.globalAlpha = prevAlpha * 0.3
 		ctx.fillStyle = colors.memFill
 		drawHexagon(ctx, sx, sy, radius)
 		ctx.fill()
@@ -537,8 +579,28 @@ function drawMemoryNode(
 		ctx.setLineDash([3, 3])
 		ctx.stroke()
 		ctx.setLineDash([])
+
+		// Draw diagonal strikethrough for superseded nodes (visual clarity)
+		const strikeR = radius * 0.55
+		ctx.beginPath()
+		ctx.moveTo(sx - strikeR, sy - strikeR)
+		ctx.lineTo(sx + strikeR, sy + strikeR)
+		ctx.strokeStyle = colors.textMuted
+		ctx.lineWidth = 1.5
+		ctx.stroke()
+
 		ctx.globalAlpha = prevAlpha
 		return
+	}
+
+	// Drop shadow for selected/hovered memory nodes
+	if (isSelected || isHovered) {
+		ctx.save()
+		const shadowColor = isSelected ? colors.accent : colors.glowColor
+		ctx.shadowColor = shadowColor
+		ctx.shadowBlur = isSelected ? 18 : 12
+		ctx.shadowOffsetX = 0
+		ctx.shadowOffsetY = 0
 	}
 
 	ctx.fillStyle = isHovered ? colors.memFillHover : colors.memFill
@@ -547,8 +609,29 @@ function drawMemoryNode(
 
 	const borderColor = node.borderColor || colors.memStrokeDefault
 	ctx.strokeStyle = isSelected ? colors.accent : borderColor
-	ctx.lineWidth = isHovered ? 2 : 1.5
+	ctx.lineWidth = isSelected ? 2.5 : isHovered ? 2 : 1.5
 	ctx.stroke()
+
+	if (isSelected || isHovered) {
+		ctx.restore()
+	}
+
+	// Draw X icon for forgotten nodes
+	if (isForgotten && size > 14) {
+		const iconR = radius * 0.3
+		ctx.save()
+		ctx.strokeStyle = colors.memBorderForgotten
+		ctx.lineWidth = Math.max(1.5, size / 20)
+		ctx.lineCap = "round"
+		ctx.globalAlpha = 0.9
+		ctx.beginPath()
+		ctx.moveTo(sx - iconR, sy - iconR)
+		ctx.lineTo(sx + iconR, sy + iconR)
+		ctx.moveTo(sx + iconR, sy - iconR)
+		ctx.lineTo(sx - iconR, sy + iconR)
+		ctx.stroke()
+		ctx.restore()
+	}
 }
 
 function drawGlow(
@@ -558,19 +641,22 @@ function drawGlow(
 	size: number,
 	nodeType: "document" | "memory",
 	colors: GraphThemeColors,
+	isHoverOnly = false,
 ): void {
 	ctx.strokeStyle = colors.glowColor
-	ctx.lineWidth = 2
-	ctx.setLineDash([3, 3])
-	ctx.globalAlpha = 0.8
+	ctx.lineWidth = isHoverOnly ? 1.5 : 2
+	ctx.setLineDash(isHoverOnly ? [4, 4] : [3, 3])
+	ctx.globalAlpha = isHoverOnly ? 0.5 : 0.8
+
+	const scale = isHoverOnly ? 1.1 : 1.15
 
 	if (nodeType === "document") {
-		const glowSize = size * 1.15
+		const glowSize = size * scale
 		const half = glowSize * 0.5
 		const r = 8 * (glowSize / 50)
 		roundRect(ctx, sx - half, sy - half, glowSize, glowSize, r)
 	} else {
-		drawHexagon(ctx, sx, sy, size * 0.5 * 1.15)
+		drawHexagon(ctx, sx, sy, size * 0.5 * scale)
 	}
 
 	ctx.stroke()
@@ -766,4 +852,20 @@ function drawDocOutline(
 	ctx.moveTo(x - lw / 2, y + sp)
 	ctx.lineTo(x + lw / 2, y + sp)
 	ctx.stroke()
+}
+
+/** Lighten a 6-digit hex color by a fraction (0-1). Cached to avoid per-frame parsing. */
+export function lightenColor(hex: string, amount: number): string {
+	if (_lightenCache && _lightenCache.input === hex && _lightenCache.amount === amount) {
+		return _lightenCache.result
+	}
+	const h = hex.replace("#", "")
+	// Only handle standard 6-digit hex; return input unchanged for other formats
+	if (h.length !== 6) return hex
+	const r = Math.min(255, Number.parseInt(h.substring(0, 2), 16) + Math.round(255 * amount))
+	const g = Math.min(255, Number.parseInt(h.substring(2, 4), 16) + Math.round(255 * amount))
+	const b = Math.min(255, Number.parseInt(h.substring(4, 6), 16) + Math.round(255 * amount))
+	const result = `#${r.toString(16).padStart(2, "0")}${g.toString(16).padStart(2, "0")}${b.toString(16).padStart(2, "0")}`
+	_lightenCache = { input: hex, amount, result }
+	return result
 }
