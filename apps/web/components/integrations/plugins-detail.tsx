@@ -69,9 +69,9 @@ const PLUGIN_CATALOG: Record<string, PluginInfo> = {
 		icon: "/images/plugins/opencode.svg",
 		docsUrl: "https://docs.supermemory.ai/integrations/opencode",
 	},
-	clawdbot: {
-		id: "clawdbot",
-		name: "ClawdBot",
+	openclaw: {
+		id: "openclaw",
+		name: "OpenClaw",
 		description:
 			"Multi-platform memory for OpenClaw. Works across Telegram, WhatsApp, Discord, Slack and more.",
 		features: [
@@ -79,7 +79,7 @@ const PLUGIN_CATALOG: Record<string, PluginInfo> = {
 			"Automatic conversation capture",
 			"User profile building across platforms",
 		],
-		icon: "/images/plugins/clawdbot.svg",
+		icon: "/images/plugins/openclaw.svg",
 		docsUrl: "https://docs.supermemory.ai/integrations/openclaw",
 		repoUrl: "https://github.com/supermemoryai/openclaw-supermemory",
 	},
@@ -335,7 +335,7 @@ export function PluginsDetail() {
 									"text-[12px] text-[#737373]",
 								)}
 							>
-								Claude Code, OpenCode, ClawdBot & more
+								Claude Code, OpenCode, OpenClaw & more
 							</span>
 						</div>
 
