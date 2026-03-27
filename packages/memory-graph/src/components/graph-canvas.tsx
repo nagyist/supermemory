@@ -56,7 +56,7 @@ export const GraphCanvas = memo<ExtendedGraphCanvasProps>(function GraphCanvas({
 	)
 
 	// Node ID tracking for smart re-init
-	const prevIdsRef = useRef<string>("")
+
 
 	// All mutable render state in a single ref — the rAF loop reads from here
 	const s = useRef({
@@ -104,18 +104,6 @@ export const GraphCanvas = memo<ExtendedGraphCanvasProps>(function GraphCanvas({
 		for (const n of nodes) map.set(n.id, n)
 		spatialRef.current.rebuild(nodes)
 		renderNeeded.current = true
-	}, [nodes])
-
-	// Track node ID changes for smart simulation re-init
-	useEffect(() => {
-		const idKey = nodes
-			.map((n) => n.id)
-			.sort()
-			.join(",")
-		if (idKey !== prevIdsRef.current) {
-			prevIdsRef.current = idKey
-			// IDs changed - full re-init needed (handled by parent)
-		}
 	}, [nodes])
 
 	useEffect(() => {
@@ -200,7 +188,9 @@ export const GraphCanvas = memo<ExtendedGraphCanvasProps>(function GraphCanvas({
 	// Single render loop — runs for component lifetime, reads everything from refs
 	// biome-ignore lint/correctness/useExhaustiveDependencies: intentionally empty deps — all state read via refs inside tick(), not reactive props
 	useEffect(() => {
-		let lastReportedZoom = 0
+		let prevVpX = 0
+		let prevVpY = 0
+		let prevVpZoom = 0
 
 		const tick = () => {
 			rafRef.current = requestAnimationFrame(tick)
@@ -247,9 +237,17 @@ export const GraphCanvas = memo<ExtendedGraphCanvasProps>(function GraphCanvas({
 				return
 			renderNeeded.current = false
 
-			// Report viewport changes (zoom + pan) so popover positions update
-			if (vpMoving && cb.current.onViewportChange) {
+			// Report viewport changes (zoom, pan, or simulation-driven node movement)
+			// so popover positions update. Covers: momentum, spring zoom, mouse drag, and sim.
+			const vpChanged =
+				vp.panX !== prevVpX ||
+				vp.panY !== prevVpY ||
+				vp.zoom !== prevVpZoom
+			if ((vpChanged || simActive) && cb.current.onViewportChange) {
 				cb.current.onViewportChange(vp.zoom)
+				prevVpX = vp.panX
+				prevVpY = vp.panY
+				prevVpZoom = vp.zoom
 			}
 
 			renderFrame(

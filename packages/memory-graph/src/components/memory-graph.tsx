@@ -453,7 +453,7 @@ export function MemoryGraph({
 		return nodes.find((n) => n.id === activeNodeId) ?? null
 	}, [activeNodeId, nodes])
 
-	// biome-ignore lint/correctness/useExhaustiveDependencies: zoomDisplay intentionally used as proxy for viewport state changes
+	// biome-ignore lint/correctness/useExhaustiveDependencies: viewportVersion intentionally used as proxy for viewport state changes
 	const activePopoverPosition = useMemo(() => {
 		if (!activeNodeData || !viewportRef.current) return null
 		const vp = viewportRef.current
@@ -463,9 +463,9 @@ export function MemoryGraph({
 			screenY: screen.y,
 			nodeRadius: (activeNodeData.size * vp.zoom) / 2,
 		}
-		// zoomDisplay triggers re-computation on viewport changes (pan/zoom)
+		// viewportVersion triggers re-computation on any viewport change (pan + zoom)
 		// eslint-disable-next-line react-hooks/exhaustive-deps
-	}, [activeNodeData, zoomDisplay])
+	}, [activeNodeData, viewportVersion])
 
 	const activeVersionChain = useMemo(() => {
 		if (!activeNodeData || activeNodeData.type !== "memory") return null
