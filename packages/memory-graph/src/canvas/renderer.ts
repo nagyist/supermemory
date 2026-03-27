@@ -3,6 +3,7 @@ import type {
 	GraphEdge,
 	GraphNode,
 	GraphThemeColors,
+	MemoryNodeData,
 } from "../types"
 import type { ViewportState } from "./viewport"
 
@@ -302,7 +303,13 @@ function drawNodes(
 	colors: GraphThemeColors,
 ): void {
 	const margin = 60
-	const memDots: { x: number; y: number; r: number; color: string }[] = []
+	const memDots: {
+		x: number
+		y: number
+		r: number
+		color: string
+		dimmed: boolean
+	}[] = []
 	const docDots: { x: number; y: number; s: number }[] = []
 
 	for (const node of nodes) {
@@ -326,11 +333,13 @@ function drawNodes(
 			if (node.type === "document") {
 				docDots.push({ x: screen.x, y: screen.y, s: Math.max(3, screenSize) })
 			} else {
+				const md = node.data as MemoryNodeData
 				memDots.push({
 					x: screen.x,
 					y: screen.y,
 					r: Math.max(2, screenSize * 0.45),
 					color: node.borderColor || colors.memStrokeDefault,
+					dimmed: md.isLatest === false,
 				})
 			}
 			continue
@@ -391,34 +400,71 @@ function drawNodes(
 	}
 
 	if (memDots.length > 0) {
-		ctx.globalAlpha = dimAlpha
+		// Draw normal (latest) memory dots
+		const normalDots = memDots.filter((d) => !d.dimmed)
+		const dimmedDots = memDots.filter((d) => d.dimmed)
 
-		ctx.fillStyle = colors.memFill
-		ctx.beginPath()
-		for (const d of memDots) {
-			ctx.moveTo(d.x + d.r, d.y)
-			ctx.arc(d.x, d.y, d.r, 0, Math.PI * 2)
-		}
-		ctx.fill()
-
-		ctx.lineWidth = 1.5
-		const byColor = new Map<string, typeof memDots>()
-		for (const d of memDots) {
-			let batch = byColor.get(d.color)
-			if (!batch) {
-				batch = []
-				byColor.set(d.color, batch)
-			}
-			batch.push(d)
-		}
-		for (const [color, batch] of byColor) {
-			ctx.strokeStyle = color
+		if (normalDots.length > 0) {
+			ctx.globalAlpha = dimAlpha
+			ctx.fillStyle = colors.memFill
 			ctx.beginPath()
-			for (const d of batch) {
+			for (const d of normalDots) {
 				ctx.moveTo(d.x + d.r, d.y)
 				ctx.arc(d.x, d.y, d.r, 0, Math.PI * 2)
 			}
-			ctx.stroke()
+			ctx.fill()
+
+			ctx.lineWidth = 1.5
+			const byColor = new Map<string, typeof normalDots>()
+			for (const d of normalDots) {
+				let batch = byColor.get(d.color)
+				if (!batch) {
+					batch = []
+					byColor.set(d.color, batch)
+				}
+				batch.push(d)
+			}
+			for (const [color, batch] of byColor) {
+				ctx.strokeStyle = color
+				ctx.beginPath()
+				for (const d of batch) {
+					ctx.moveTo(d.x + d.r, d.y)
+					ctx.arc(d.x, d.y, d.r, 0, Math.PI * 2)
+				}
+				ctx.stroke()
+			}
+		}
+
+		// Draw dimmed (superseded) memory dots at reduced opacity
+		if (dimmedDots.length > 0) {
+			ctx.globalAlpha = dimAlpha * 0.35
+			ctx.fillStyle = colors.memFill
+			ctx.beginPath()
+			for (const d of dimmedDots) {
+				ctx.moveTo(d.x + d.r, d.y)
+				ctx.arc(d.x, d.y, d.r, 0, Math.PI * 2)
+			}
+			ctx.fill()
+
+			ctx.lineWidth = 1
+			const byColor = new Map<string, typeof dimmedDots>()
+			for (const d of dimmedDots) {
+				let batch = byColor.get(d.color)
+				if (!batch) {
+					batch = []
+					byColor.set(d.color, batch)
+				}
+				batch.push(d)
+			}
+			for (const [color, batch] of byColor) {
+				ctx.strokeStyle = color
+				ctx.beginPath()
+				for (const d of batch) {
+					ctx.moveTo(d.x + d.r, d.y)
+					ctx.arc(d.x, d.y, d.r, 0, Math.PI * 2)
+				}
+				ctx.stroke()
+			}
 		}
 	}
 
@@ -475,7 +521,25 @@ function drawMemoryNode(
 	_isHighlighted: boolean,
 	colors: GraphThemeColors,
 ): void {
+	const memData = node.data as MemoryNodeData
+	const isSuperseded = memData.isLatest === false
 	const radius = size * 0.5
+
+	// Dim superseded (non-latest) memory nodes
+	if (isSuperseded && !isSelected && !isHovered) {
+		const prevAlpha = ctx.globalAlpha
+		ctx.globalAlpha = prevAlpha * 0.35
+		ctx.fillStyle = colors.memFill
+		drawHexagon(ctx, sx, sy, radius)
+		ctx.fill()
+		ctx.strokeStyle = node.borderColor || colors.memStrokeDefault
+		ctx.lineWidth = 1
+		ctx.setLineDash([3, 3])
+		ctx.stroke()
+		ctx.setLineDash([])
+		ctx.globalAlpha = prevAlpha
+		return
+	}
 
 	ctx.fillStyle = isHovered ? colors.memFillHover : colors.memFill
 	drawHexagon(ctx, sx, sy, radius)
