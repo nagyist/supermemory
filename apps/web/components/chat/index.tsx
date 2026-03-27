@@ -35,6 +35,8 @@ import ChatInput from "./input"
 import ChatModelSelector from "./model-selector"
 import { GradientLogo, LogoBgGradient } from "@ui/assets/Logo"
 import { useProject } from "@/stores"
+import { useContainerTags } from "@/hooks/use-container-tags"
+import { getChatSpaceDisplayLabel } from "@/lib/chat-space-label"
 import type { ModelId } from "@/lib/models"
 import { SuperLoader } from "../superloader"
 import { UserMessage } from "./message/user-message"
@@ -133,6 +135,15 @@ export function ChatSidebar({
 	const messagesContainerRef = useRef<HTMLDivElement>(null)
 	const sentQueuedMessageRef = useRef<string | null>(null)
 	const { selectedProject } = useProject()
+	const { allProjects } = useContainerTags()
+	const chatSpaceLabel = useMemo(
+		() =>
+			getChatSpaceDisplayLabel({
+				selectedProject,
+				allProjects,
+			}),
+		[selectedProject, allProjects],
+	)
 	const { viewMode } = useViewMode()
 	const { user: _user } = useAuth()
 	const [threadId, setThreadId] = useQueryState("thread", threadParam)
@@ -536,11 +547,27 @@ export function ChatSidebar({
 								"linear-gradient(180deg, #0A0E14 40.49%, rgba(10, 14, 20, 0.00) 100%)",
 						}}
 					>
-						<ChatModelSelector
-							selectedModel={selectedModel}
-							onModelChange={setSelectedModel}
-						/>
-						<div className="flex items-center gap-2">
+						<div className="flex items-center gap-3 min-w-0 flex-1 mr-2">
+							<ChatModelSelector
+								selectedModel={selectedModel}
+								onModelChange={setSelectedModel}
+							/>
+							<div
+								className={cn(
+									"inline-flex h-10 max-w-[min(192px,42vw)] shrink min-w-0 items-center rounded-full border border-[#73737333] bg-[#0D121A] px-3",
+									dmSansClassName(),
+								)}
+								style={{
+									boxShadow: "1.5px 1.5px 4.5px 0 rgba(0, 0, 0, 0.70) inset",
+								}}
+								title={chatSpaceLabel}
+							>
+								<span className="truncate text-sm text-white">
+									{chatSpaceLabel}
+								</span>
+							</div>
+						</div>
+						<div className="flex items-center gap-2 shrink-0">
 							<Dialog
 								open={isHistoryOpen}
 								onOpenChange={(open) => {
@@ -569,7 +596,7 @@ export function ChatSidebar({
 									<DialogHeader className="pb-4 border-b border-[#17181AB2]">
 										<DialogTitle>Chat History</DialogTitle>
 										<DialogDescription className="text-[#737373]">
-											Project: {selectedProject}
+											Space: {chatSpaceLabel}
 										</DialogDescription>
 									</DialogHeader>
 									<ScrollArea className="max-h-96">
@@ -684,7 +711,7 @@ export function ChatSidebar({
 									</span>
 								)}
 							</Button>
-							<motion.button
+							{/*<motion.button
 								onClick={toggleChat}
 								className={cn(
 									"flex items-center gap-2 rounded-full p-2 text-xs text-white cursor-pointer",
@@ -705,7 +732,7 @@ export function ChatSidebar({
 								) : (
 									<PanelRightCloseIcon className="size-4" />
 								)}
-							</motion.button>
+							</motion.button>*/}
 						</div>
 					</div>
 					<div
