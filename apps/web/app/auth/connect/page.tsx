@@ -56,8 +56,8 @@ const PLUGIN_INFO: Record<string, PluginInfo> = {
 		],
 		icon: "/images/plugins/opencode.svg",
 	},
-	clawdbot: {
-		name: "ClawdBot",
+	openclaw: {
+		name: "OpenClaw",
 		description:
 			"Multi-platform memory for OpenClaw. Works across Telegram, WhatsApp, Discord, Slack and more.",
 		features: [
@@ -65,7 +65,7 @@ const PLUGIN_INFO: Record<string, PluginInfo> = {
 			"Automatic conversation capture",
 			"User profile building across platforms",
 		],
-		icon: "/images/plugins/clawdbot.svg",
+		icon: "/images/plugins/openclaw.svg",
 	},
 	cursor: {
 		name: "Cursor",

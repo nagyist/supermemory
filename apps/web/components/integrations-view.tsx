@@ -65,8 +65,8 @@ const cards: IntegrationCardDef[] = [
 					className="size-6 rounded"
 				/>
 				<Image
-					src="/images/plugins/clawdbot.svg"
-					alt="ClawdBot"
+					src="/images/plugins/openclaw.svg"
+					alt="OpenClaw"
 					width={24}
 					height={24}
 					className="size-6 rounded"
