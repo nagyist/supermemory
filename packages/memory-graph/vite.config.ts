@@ -1,4 +1,4 @@
-import { defineConfig } from "vite"
+import { defineConfig } from "vitest/config"
 import react from "@vitejs/plugin-react"
 import { resolve } from "node:path"
 
@@ -8,6 +8,10 @@ export default defineConfig({
 		alias: {
 			"@": resolve(__dirname, "./src"),
 		},
+	},
+	test: {
+		include: ["src/**/*.test.ts"],
+		environment: "node",
 	},
 	build: {
 		lib: {

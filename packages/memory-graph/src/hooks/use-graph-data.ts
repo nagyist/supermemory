@@ -14,7 +14,7 @@ const SEVEN_DAYS_MS = 7 * 24 * 60 * 60 * 1000
 const ONE_DAY_MS = 24 * 60 * 60 * 1000
 const MEMORY_CLUSTER_SPREAD = 150
 
-function getMemoryBorderColor(
+export function getMemoryBorderColor(
 	mem: GraphApiMemory,
 	colors: GraphThemeColors,
 ): string {
@@ -28,14 +28,14 @@ function getMemoryBorderColor(
 	return colors.memStrokeDefault
 }
 
-function getEdgeVisualProps(similarity: number) {
+export function getEdgeVisualProps(similarity: number) {
 	return {
 		opacity: 0.3 + similarity * 0.5,
 		thickness: 1 + similarity * 1.5,
 	}
 }
 
-function normalizeDocCoordinates(
+export function normalizeDocCoordinates(
 	documents: GraphApiDocument[],
 ): GraphApiDocument[] {
 	if (documents.length <= 1) return documents
