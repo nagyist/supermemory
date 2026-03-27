@@ -56,17 +56,20 @@ export class VersionChainIndex {
 		}
 		backward.reverse()
 
-		// Walk forward from the selected node to find descendants
+		// Walk forward from the selected node to find descendants.
+		// Version chains are linear (each memory has one parent), so we
+		// follow the first child at each step. If branching occurs, only
+		// the first branch (by document order) is included.
 		const forward: GraphApiMemory[] = []
-		let tip: GraphApiMemory | undefined = mem
-		while (tip) {
-			const children = this.childrenMap.get(tip.id)
+		let cursor: GraphApiMemory | undefined = mem
+		while (cursor) {
+			const children = this.childrenMap.get(cursor.id)
 			if (!children || children.length === 0) break
 			const child = this.memoryMap.get(children[0])
 			if (!child || visited.has(child.id)) break
 			visited.add(child.id)
 			forward.push(child)
-			tip = child
+			cursor = child
 		}
 
 		// Combine: backward (root..selected) + forward (selected+1..latest)

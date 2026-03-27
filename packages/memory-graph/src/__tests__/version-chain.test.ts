@@ -37,15 +37,15 @@ function makeDoc(id: string, memories: GraphApiMemory[]): GraphApiDocument {
 }
 
 describe("VersionChainIndex", () => {
-	it("getChain returns null for version 1 memories (no chain)", () => {
+	it("getChain returns null for standalone memory (no parent, no children)", () => {
 		const idx = new VersionChainIndex()
 		const doc = makeDoc("d1", [makeMem({ id: "m1", version: 1 })])
 		idx.rebuild([doc])
-		// version <= 1 returns null per implementation
+		// Single memory with no parent and no children — not a chain
 		expect(idx.getChain("m1")).toBeNull()
 	})
 
-	it("builds chain by walking parentMemoryId backwards then reversing", () => {
+	it("getChain from latest node returns full chain in version order", () => {
 		const idx = new VersionChainIndex()
 		const doc = makeDoc("d1", [
 			makeMem({ id: "m1", version: 1 }),
@@ -228,6 +228,46 @@ describe("VersionChainIndex", () => {
 		expect(chain2).not.toBeNull()
 		expect(chain1!.map((e) => e.id)).toEqual(["m1", "m2"])
 		expect(chain2!.map((e) => e.id)).toEqual(["m3", "m4"])
+	})
+
+	it("handles circular parent references without infinite loop", () => {
+		const idx = new VersionChainIndex()
+		const doc = makeDoc("d1", [
+			makeMem({ id: "m1", version: 1, parentMemoryId: "m2" }),
+			makeMem({ id: "m2", version: 2, parentMemoryId: "m1" }),
+		])
+		idx.rebuild([doc])
+
+		// Cycle: m1->m2->m1. The visited set prevents infinite loops.
+		const chain = idx.getChain("m1")
+		expect(chain).not.toBeNull()
+		expect(chain!.length).toBe(2)
+	})
+
+	it("branching children: follows first child by document order", () => {
+		const idx = new VersionChainIndex()
+		const doc = makeDoc("d1", [
+			makeMem({ id: "m1", version: 1 }),
+			makeMem({
+				id: "m2a",
+				parentMemoryId: "m1",
+				rootMemoryId: "m1",
+				version: 2,
+			}),
+			makeMem({
+				id: "m2b",
+				parentMemoryId: "m1",
+				rootMemoryId: "m1",
+				version: 2,
+			}),
+		])
+		idx.rebuild([doc])
+
+		// m1 has two children; forward walk picks the first (m2a)
+		const chain = idx.getChain("m1")
+		expect(chain).not.toBeNull()
+		expect(chain!.length).toBe(2)
+		expect(chain!.map((e) => e.id)).toEqual(["m1", "m2a"])
 	})
 
 	it("chain entries have correct fields", () => {
