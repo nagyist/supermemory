@@ -36,6 +36,10 @@ const DOCUMENT_TYPES = [
 	"youtube",
 	"image",
 	"note",
+	"google_drive",
+	"video",
+	"mcp",
+	"word",
 ] as const
 
 const TITLE_PREFIXES = [
