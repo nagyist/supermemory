@@ -2,7 +2,6 @@
 
 import { useEffect, useRef, useState } from "react"
 import { MemoryGraph as MemoryGraphBase } from "@supermemory/memory-graph"
-import type { GraphApiDocument, GraphApiEdge } from "@supermemory/memory-graph"
 import { useGraphApi } from "./hooks/use-graph-api"
 
 export interface MemoryGraphWrapperProps {
@@ -28,7 +27,6 @@ export function MemoryGraph({
 	error: externalError = null,
 	variant = "console",
 	containerTags,
-	documentIds,
 	maxNodes = 200,
 	canvasRef,
 	...rest
@@ -48,27 +46,31 @@ export function MemoryGraph({
 	}, [])
 
 	const {
-		data: apiData,
+		documents,
 		isLoading: apiIsLoading,
+		isLoadingMore,
 		error: apiError,
+		hasMore,
+		loadMore,
+		totalCount,
 	} = useGraphApi({
 		containerTags,
-		documentIds,
-		limit: maxNodes,
 		enabled: containerSize.width > 0 && containerSize.height > 0,
 	})
 
 	return (
 		<div ref={containerRef} className="w-full h-full">
 			<MemoryGraphBase
-				documents={apiData.documents as GraphApiDocument[]}
-				apiEdges={apiData.edges as GraphApiEdge[]}
+				documents={documents}
 				isLoading={externalIsLoading || apiIsLoading}
+				isLoadingMore={isLoadingMore}
+				onLoadMore={hasMore ? () => loadMore() : undefined}
+				hasMore={hasMore}
 				error={externalError || apiError}
 				variant={variant}
 				maxNodes={maxNodes}
 				canvasRef={canvasRef}
-				totalCount={apiData.totalCount}
+				totalCount={totalCount}
 				{...rest}
 			>
 				{children}

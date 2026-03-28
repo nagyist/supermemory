@@ -27,11 +27,14 @@ interface GraphApiMemory {
 	id: string
 	memory: string
 	isStatic: boolean
+	spaceId: string
 	isLatest: boolean
 	isForgotten: boolean
 	forgetAfter: string | null
+	forgetReason: string | null
 	version: number
 	parentMemoryId: string | null
+	rootMemoryId: string | null
 	createdAt: string
 	updatedAt: string
 }
@@ -43,22 +46,12 @@ interface GraphApiDocument {
 	documentType: string
 	createdAt: string
 	updatedAt: string
-	x: number
-	y: number
 	memories: GraphApiMemory[]
-}
-
-interface GraphApiEdge {
-	source: string
-	target: string
-	similarity: number
 }
 
 interface ToolResultData {
 	containerTag?: string
-	bounds: { minX: number; maxX: number; minY: number; maxY: number } | null
 	documents: GraphApiDocument[]
-	edges: GraphApiEdge[]
 	totalCount: number
 }
 
@@ -91,8 +84,7 @@ type GraphNode = MemoryNode | DocumentNode
 interface GraphLink extends LinkObject {
 	source: string | GraphNode
 	target: string | GraphNode
-	edgeType: "doc-memory" | "version" | "similarity"
-	similarity?: number
+	edgeType: "doc-memory" | "version" | "same-space"
 }
 
 // =============================================================================
@@ -109,12 +101,12 @@ const EDGE_COLORS = {
 	dark: {
 		"doc-memory": "#4A5568",
 		version: "#8B5CF6",
-		similarity: "#00D4B8",
+		"same-space": "#00D4B8",
 	},
 	light: {
 		"doc-memory": "#A0AEC0",
 		version: "#8B5CF6",
-		similarity: "#0D9488",
+		"same-space": "#0D9488",
 	},
 }
 
@@ -157,33 +149,20 @@ function getMemoryBorderColor(mem: GraphApiMemory): string {
 	return MEMORY_BORDER.default
 }
 
-function normalizeDocCoordinates(
-	documents: GraphApiDocument[],
-): GraphApiDocument[] {
-	if (documents.length <= 1) return documents
-
-	let minX = Number.POSITIVE_INFINITY
-	let maxX = Number.NEGATIVE_INFINITY
-	let minY = Number.POSITIVE_INFINITY
-	let maxY = Number.NEGATIVE_INFINITY
-	for (const doc of documents) {
-		minX = Math.min(minX, doc.x)
-		maxX = Math.max(maxX, doc.x)
-		minY = Math.min(minY, doc.y)
-		maxY = Math.max(maxY, doc.y)
+/** Simple hash to get deterministic initial positions from doc ID */
+function hashCode(s: string): number {
+	let h = 0
+	for (let i = 0; i < s.length; i++) {
+		h = (Math.imul(31, h) + s.charCodeAt(i)) | 0
 	}
+	return h
+}
 
-	const rangeX = maxX - minX || 1
-	const rangeY = maxY - minY || 1
-	// Small spread so documents start near each other.
-	// The force simulation will naturally separate them.
-	const SPREAD = 50
-
-	return documents.map((doc) => ({
-		...doc,
-		x: ((doc.x - minX) / rangeX - 0.5) * SPREAD,
-		y: ((doc.y - minY) / rangeY - 0.5) * SPREAD,
-	}))
+function initialPosition(id: string, spread: number): { x: number; y: number } {
+	const h = hashCode(id)
+	const angle = ((h & 0xffff) / 0xffff) * Math.PI * 2
+	const radius = (((h >>> 16) & 0xffff) / 0xffff) * spread
+	return { x: Math.cos(angle) * radius, y: Math.sin(angle) * radius }
 }
 
 function transformData(data: ToolResultData): {
@@ -193,10 +172,13 @@ function transformData(data: ToolResultData): {
 	const nodes: GraphNode[] = []
 	const links: GraphLink[] = []
 	const nodeIds = new Set<string>()
+	const SPREAD = 50
 
-	const normalizedDocs = normalizeDocCoordinates(data.documents)
+	// Group documents by spaceId for same-space edges
+	const spaceGroups = new Map<string, string[]>()
 
-	for (const doc of normalizedDocs) {
+	for (const doc of data.documents) {
+		const pos = initialPosition(doc.id, SPREAD)
 		nodes.push({
 			id: doc.id,
 			nodeType: "document",
@@ -205,8 +187,8 @@ function transformData(data: ToolResultData): {
 			docType: doc.documentType,
 			createdAt: doc.createdAt,
 			memoryCount: doc.memories.length,
-			x: doc.x,
-			y: doc.y,
+			x: pos.x,
+			y: pos.y,
 		} as DocumentNode)
 		nodeIds.add(doc.id)
 
@@ -227,8 +209,8 @@ function transformData(data: ToolResultData): {
 				parentMemoryId: mem.parentMemoryId,
 				createdAt: mem.createdAt,
 				borderColor: getMemoryBorderColor(mem),
-				x: doc.x + Math.cos(angle) * CLUSTER_SPREAD,
-				y: doc.y + Math.sin(angle) * CLUSTER_SPREAD,
+				x: pos.x + Math.cos(angle) * CLUSTER_SPREAD,
+				y: pos.y + Math.sin(angle) * CLUSTER_SPREAD,
 			} as MemoryNode)
 			nodeIds.add(mem.id)
 
@@ -243,18 +225,32 @@ function transformData(data: ToolResultData): {
 					edgeType: "version",
 				})
 			}
+
+			// Track space groups for same-space edges
+			if (mem.spaceId) {
+				const group = spaceGroups.get(mem.spaceId)
+				if (group) group.push(doc.id)
+				else spaceGroups.set(mem.spaceId, [doc.id])
+			}
 		}
 	}
 
-	// Similarity edges from API
-	for (const edge of data.edges) {
-		if (nodeIds.has(edge.source) && nodeIds.has(edge.target)) {
-			links.push({
-				source: edge.source,
-				target: edge.target,
-				edgeType: "similarity",
-				similarity: edge.similarity,
-			})
+	// Same-space edges between documents sharing a space
+	const addedEdges = new Set<string>()
+	for (const docIds of spaceGroups.values()) {
+		const unique = [...new Set(docIds)]
+		for (let i = 0; i < unique.length; i++) {
+			for (let j = i + 1; j < unique.length; j++) {
+				const key = `${unique[i]}:${unique[j]}`
+				if (!addedEdges.has(key)) {
+					addedEdges.add(key)
+					links.push({
+						source: unique[i]!,
+						target: unique[j]!,
+						edgeType: "same-space",
+					})
+				}
+			}
 		}
 	}
 
@@ -371,13 +367,12 @@ const graph = new ForceGraph<GraphNode, GraphLink>(container)
 	)
 	.linkWidth((link: GraphLink) => {
 		if (link.edgeType === "version") return 2
-		if (link.edgeType === "similarity")
-			return 0.5 + (link.similarity || 0) * 1.5
+		if (link.edgeType === "same-space") return 0.5
 		return 1
 	})
 	.linkColor(getLinkColor)
 	.linkLineDash((link: GraphLink) => {
-		if (link.edgeType === "similarity") return [4, 2]
+		if (link.edgeType === "same-space") return [4, 2]
 		return null as unknown as number[]
 	})
 	.linkDirectionalArrowLength((link: GraphLink) =>
@@ -399,7 +394,7 @@ const graph = new ForceGraph<GraphNode, GraphLink>(container)
 			.strength((l: GraphLink) => {
 				if (l.edgeType === "doc-memory") return 0.8
 				if (l.edgeType === "version") return 1.0
-				return (l.similarity || 0.3) * 0.3
+				return 0.15 // same-space
 			}),
 	)
 	.d3Force("collide", forceCollide(18))

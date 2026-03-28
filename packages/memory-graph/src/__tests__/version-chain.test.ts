@@ -30,8 +30,6 @@ function makeDoc(id: string, memories: GraphApiMemory[]): GraphApiDocument {
 		documentType: "text",
 		createdAt: "2024-01-01",
 		updatedAt: "2024-01-01",
-		x: 0,
-		y: 0,
 		memories,
 	}
 }

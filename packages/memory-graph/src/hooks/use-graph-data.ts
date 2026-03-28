@@ -2,7 +2,6 @@ import { useEffect, useMemo, useRef } from "react"
 import type {
 	DocumentNodeData,
 	GraphApiDocument,
-	GraphApiEdge,
 	GraphApiMemory,
 	GraphEdge,
 	GraphNode,
@@ -28,44 +27,34 @@ export function getMemoryBorderColor(
 	return colors.memStrokeDefault
 }
 
-export function getEdgeVisualProps(similarity: number) {
-	return {
-		opacity: 0.3 + similarity * 0.5,
-		thickness: 1 + similarity * 1.5,
+export function getEdgeVisualProps(edgeType: string) {
+	switch (edgeType) {
+		case "doc-memory":
+			return { opacity: 0.3, thickness: 1.5 }
+		case "version":
+			return { opacity: 0.6, thickness: 2 }
+		case "same-space":
+			return { opacity: 0.15, thickness: 1 }
+		default:
+			return { opacity: 0.3, thickness: 1 }
 	}
 }
 
-export function normalizeDocCoordinates(
-	documents: GraphApiDocument[],
-): GraphApiDocument[] {
-	if (documents.length <= 1) return documents
-
-	let minX = Number.POSITIVE_INFINITY
-	let maxX = Number.NEGATIVE_INFINITY
-	let minY = Number.POSITIVE_INFINITY
-	let maxY = Number.NEGATIVE_INFINITY
-
-	for (const doc of documents) {
-		minX = Math.min(minX, doc.x)
-		maxX = Math.max(maxX, doc.x)
-		minY = Math.min(minY, doc.y)
-		maxY = Math.max(maxY, doc.y)
+/**
+ * Simple deterministic hash of a string to a number in [0, 1).
+ * Used for initial node placement so the force simulation has a
+ * deterministic starting layout.
+ */
+function hashToUnit(str: string): number {
+	let h = 0
+	for (let i = 0; i < str.length; i++) {
+		h = (Math.imul(31, h) + str.charCodeAt(i)) | 0
 	}
-
-	const rangeX = maxX - minX || 1
-	const rangeY = maxY - minY || 1
-	const PAD = 100
-
-	return documents.map((doc) => ({
-		...doc,
-		x: PAD + ((doc.x - minX) / rangeX) * (1000 - 2 * PAD),
-		y: PAD + ((doc.y - minY) / rangeY) * (1000 - 2 * PAD),
-	}))
+	return ((h >>> 0) % 10000) / 10000
 }
 
 export function useGraphData(
 	documents: GraphApiDocument[],
-	apiEdges: GraphApiEdge[],
 	draggingNodeId: string | null,
 	canvasWidth: number,
 	canvasHeight: number,
@@ -87,30 +76,20 @@ export function useGraphData(
 		}
 	}, [documents])
 
-	const { scale, offsetX, offsetY } = useMemo(() => {
-		if (canvasWidth === 0 || canvasHeight === 0) {
-			return { scale: 1, offsetX: 0, offsetY: 0 }
-		}
-		const paddingFactor = 0.8
-		const s = (Math.min(canvasWidth, canvasHeight) * paddingFactor) / 1000
-		const ox = (canvasWidth - 1000 * s) / 2
-		const oy = (canvasHeight - 1000 * s) / 2
-		return { scale: s, offsetX: ox, offsetY: oy }
-	}, [canvasWidth, canvasHeight])
-
-	const normalizedDocs = useMemo(
-		() => normalizeDocCoordinates(documents),
-		[documents],
-	)
-
 	const nodes = useMemo(() => {
-		if (!normalizedDocs || normalizedDocs.length === 0) return []
+		if (!documents || documents.length === 0) return []
 
 		const result: GraphNode[] = []
+		// Place nodes in the canvas space; force simulation will refine positions
+		const spreadW = Math.max(canvasWidth * 0.8, 400)
+		const spreadH = Math.max(canvasHeight * 0.8, 400)
+		const padX = (canvasWidth - spreadW) / 2
+		const padY = (canvasHeight - spreadH) / 2
 
-		for (const doc of normalizedDocs) {
-			const initialX = doc.x * scale + offsetX
-			const initialY = doc.y * scale + offsetY
+		for (const doc of documents) {
+			// Deterministic initial position based on doc id
+			const initialX = padX + hashToUnit(doc.id) * spreadW
+			const initialY = padY + hashToUnit(`${doc.id}-y`) * spreadH
 
 			let docNode = nodeCache.current.get(doc.id)
 			const docData: DocumentNodeData = {
@@ -177,122 +156,81 @@ export function useGraphData(
 		}
 
 		return result
-	}, [normalizedDocs, scale, offsetX, offsetY, draggingNodeId, colors])
+	}, [documents, canvasWidth, canvasHeight, draggingNodeId, colors])
 
 	const edges = useMemo(() => {
-		if (!normalizedDocs || normalizedDocs.length === 0) return []
+		if (!documents || documents.length === 0) return []
 
 		const result: GraphEdge[] = []
-		// Build allNodeIds from normalizedDocs directly to avoid depending on `nodes`
-		// (which changes identity on every render due to draggingNodeId/colors deps)
 		const allNodeIds = new Set<string>()
-		for (const doc of normalizedDocs) {
+		for (const doc of documents) {
 			allNodeIds.add(doc.id)
 			for (const mem of doc.memories) allNodeIds.add(mem.id)
 		}
 
-		for (const doc of normalizedDocs) {
+		// Doc-memory edges
+		for (const doc of documents) {
 			for (const mem of doc.memories) {
 				result.push({
 					id: `dm-${doc.id}-${mem.id}`,
 					source: doc.id,
 					target: mem.id,
-					similarity: 1,
-					visualProps: { opacity: 0.3, thickness: 1.5 },
+					visualProps: getEdgeVisualProps("doc-memory"),
 					edgeType: "doc-memory",
 				})
 			}
 		}
 
-		for (const doc of normalizedDocs) {
+		// Version chain edges
+		for (const doc of documents) {
 			for (const mem of doc.memories) {
 				if (mem.parentMemoryId && allNodeIds.has(mem.parentMemoryId)) {
 					result.push({
 						id: `ver-${mem.parentMemoryId}-${mem.id}`,
 						source: mem.parentMemoryId,
 						target: mem.id,
-						similarity: 1,
-						visualProps: { opacity: 0.6, thickness: 2 },
+						visualProps: getEdgeVisualProps("version"),
 						edgeType: "version",
 					})
 				}
 			}
 		}
 
-		for (const apiEdge of apiEdges) {
-			if (!allNodeIds.has(apiEdge.source) || !allNodeIds.has(apiEdge.target)) {
-				continue
+		// Same-space edges: connect documents that share a spaceId
+		const spaceGroups = new Map<string, string[]>()
+		for (const doc of documents) {
+			for (const mem of doc.memories) {
+				const group = spaceGroups.get(mem.spaceId)
+				if (group) {
+					if (!group.includes(doc.id)) group.push(doc.id)
+				} else {
+					spaceGroups.set(mem.spaceId, [doc.id])
+				}
 			}
-
-			result.push({
-				id: `sim-${apiEdge.source}-${apiEdge.target}`,
-				source: apiEdge.source,
-				target: apiEdge.target,
-				similarity: apiEdge.similarity,
-				visualProps: getEdgeVisualProps(apiEdge.similarity),
-				edgeType: "similarity",
-			})
+		}
+		const addedPairs = new Set<string>()
+		for (const docIds of spaceGroups.values()) {
+			for (let i = 0; i < docIds.length; i++) {
+				for (let j = i + 1; j < docIds.length; j++) {
+					const a = docIds[i]!
+					const b = docIds[j]!
+					const key = a < b ? `${a}:${b}` : `${b}:${a}`
+					if (!addedPairs.has(key)) {
+						addedPairs.add(key)
+						result.push({
+							id: `ss-${key}`,
+							source: a,
+							target: b,
+							visualProps: getEdgeVisualProps("same-space"),
+							edgeType: "same-space",
+						})
+					}
+				}
+			}
 		}
 
 		return result
-	}, [normalizedDocs, apiEdges])
+	}, [documents])
 
-	return { nodes, edges, scale, offsetX, offsetY }
-}
-
-export function screenToBackendCoords(
-	screenX: number,
-	screenY: number,
-	panX: number,
-	panY: number,
-	zoom: number,
-	canvasWidth: number,
-	canvasHeight: number,
-): { x: number; y: number } {
-	const canvasX = (screenX - panX) / zoom
-	const canvasY = (screenY - panY) / zoom
-
-	const paddingFactor = 0.8
-	const s = (Math.min(canvasWidth, canvasHeight) * paddingFactor) / 1000
-	const ox = (canvasWidth - 1000 * s) / 2
-	const oy = (canvasHeight - 1000 * s) / 2
-
-	return {
-		x: (canvasX - ox) / s,
-		y: (canvasY - oy) / s,
-	}
-}
-
-export function calculateBackendViewport(
-	panX: number,
-	panY: number,
-	zoom: number,
-	canvasWidth: number,
-	canvasHeight: number,
-): { minX: number; maxX: number; minY: number; maxY: number } {
-	const topLeft = screenToBackendCoords(
-		0,
-		0,
-		panX,
-		panY,
-		zoom,
-		canvasWidth,
-		canvasHeight,
-	)
-	const bottomRight = screenToBackendCoords(
-		canvasWidth,
-		canvasHeight,
-		panX,
-		panY,
-		zoom,
-		canvasWidth,
-		canvasHeight,
-	)
-
-	return {
-		minX: Math.max(0, Math.min(topLeft.x, bottomRight.x)),
-		maxX: Math.max(topLeft.x, bottomRight.x),
-		minY: Math.max(0, Math.min(topLeft.y, bottomRight.y)),
-		maxY: Math.max(topLeft.y, bottomRight.y),
-	}
+	return { nodes, edges }
 }

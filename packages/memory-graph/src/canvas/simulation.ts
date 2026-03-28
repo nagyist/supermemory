@@ -23,7 +23,8 @@ export class ForceSimulation {
 					.strength((link) => {
 						if (link.edgeType === "doc-memory") return 0.8
 						if (link.edgeType === "version") return 1.0
-						return link.similarity * 0.3
+						if (link.edgeType === "same-space") return 0.1
+						return 0.3
 					}),
 			)
 

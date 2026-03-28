@@ -395,14 +395,8 @@ export const Legend = memo(function Legend({
 											</div>
 											<div style={rowStyle}>
 												<div style={rowLeftStyle}>
-													<LineIcon color={colors.edgeSimStrong} />
-													<span style={edgeLabelStyle}>Similarity</span>
-												</div>
-											</div>
-											<div style={rowStyle}>
-												<div style={rowLeftStyle}>
-													<LineIcon color={colors.edgeDocDoc} dashed />
-													<span style={edgeLabelStyle}>Doc similarity</span>
+													<LineIcon color={colors.edgeSameSpace} dashed />
+													<span style={edgeLabelStyle}>Same space</span>
 												</div>
 											</div>
 										</div>

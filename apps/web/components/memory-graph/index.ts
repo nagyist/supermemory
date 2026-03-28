@@ -12,7 +12,6 @@ export type {
 	GraphEdge,
 	GraphApiDocument,
 	GraphApiMemory,
-	GraphApiEdge,
 } from "@supermemory/memory-graph"
 
 // Keep the API hook export

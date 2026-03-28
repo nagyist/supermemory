@@ -65,7 +65,9 @@ export class VersionChainIndex {
 		while (cursor) {
 			const children = this.childrenMap.get(cursor.id)
 			if (!children || children.length === 0) break
-			const child = this.memoryMap.get(children[0])
+			const firstChildId = children[0]
+			if (!firstChildId) break
+			const child = this.memoryMap.get(firstChildId)
 			if (!child || visited.has(child.id)) break
 			visited.add(child.id)
 			forward.push(child)

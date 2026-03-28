@@ -13,8 +13,10 @@ import { NodeHoverPopover } from "./node-hover-popover"
 
 export function MemoryGraph({
 	documents = [],
-	apiEdges = [],
 	isLoading: externalIsLoading = false,
+	isLoadingMore = false,
+	onLoadMore,
+	hasMore = false,
 	error: externalError = null,
 	children,
 	variant = "console",
@@ -24,7 +26,6 @@ export function MemoryGraph({
 	maxNodes,
 	isSlideshowActive = false,
 	onSlideshowNodeChange,
-	onSlideshowStop: _onSlideshowStop,
 	canvasRef: externalCanvasRef,
 	colors: colorOverrides,
 	totalCount,
@@ -58,7 +59,6 @@ export function MemoryGraph({
 
 	const { nodes, edges } = useGraphData(
 		limitedDocuments,
-		apiEdges,
 		null,
 		containerSize.width,
 		containerSize.height,
@@ -545,10 +545,35 @@ export function MemoryGraph({
 		<div style={wrapperStyle}>
 			<LoadingIndicator
 				isLoading={isLoading}
-				isLoadingMore={false}
+				isLoadingMore={isLoadingMore}
 				totalLoaded={totalCount ?? documents.length}
 				colors={colors}
 			/>
+
+			{!isLoading && hasMore && onLoadMore && (
+				<button
+					type="button"
+					onClick={onLoadMore}
+					style={{
+						position: "absolute",
+						top: 16,
+						right: 16,
+						zIndex: 30,
+						borderRadius: 12,
+						border: `1px solid ${colors.controlBorder}`,
+						backgroundColor: colors.controlBg,
+						color: colors.textSecondary,
+						paddingLeft: 16,
+						paddingRight: 16,
+						paddingTop: 8,
+						paddingBottom: 8,
+						fontSize: 13,
+						cursor: "pointer",
+					}}
+				>
+					{isLoadingMore ? "Loading..." : "Load more"}
+				</button>
+			)}
 
 			{!isLoading && !nodes.some((n) => n.type === "document") && children && (
 				<div style={emptyStateStyle}>{children}</div>

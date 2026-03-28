@@ -29,7 +29,6 @@ function makeEdge(source: string, target: string): GraphEdge {
 		id: `e-${source}-${target}`,
 		source,
 		target,
-		similarity: 0.8,
 		visualProps: { opacity: 0.5, thickness: 1.5 },
 		edgeType: "doc-memory",
 	}

@@ -37,19 +37,10 @@ function resolveColors(): GraphThemeColors {
 			DEFAULT_COLORS.edgeDocMemory,
 		),
 		edgeVersion: readCssVar("--graph-edge-version", DEFAULT_COLORS.edgeVersion),
-		edgeSimStrong: readCssVar(
-			"--graph-edge-sim-strong",
-			DEFAULT_COLORS.edgeSimStrong,
+		edgeSameSpace: readCssVar(
+			"--graph-edge-same-space",
+			DEFAULT_COLORS.edgeSameSpace,
 		),
-		edgeSimMedium: readCssVar(
-			"--graph-edge-sim-medium",
-			DEFAULT_COLORS.edgeSimMedium,
-		),
-		edgeSimWeak: readCssVar(
-			"--graph-edge-sim-weak",
-			DEFAULT_COLORS.edgeSimWeak,
-		),
-		edgeDocDoc: readCssVar("--graph-edge-doc-doc", DEFAULT_COLORS.edgeDocDoc),
 		memBorderForgotten: readCssVar(
 			"--graph-mem-border-forgotten",
 			DEFAULT_COLORS.memBorderForgotten,

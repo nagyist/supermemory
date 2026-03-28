@@ -72,7 +72,7 @@ function drawDocDocLines(
 	}
 
 	// For each doc, find 2 nearest from neighboring cells only
-	ctx.strokeStyle = colors.edgeDocDoc
+	ctx.strokeStyle = colors.edgeSameSpace
 	ctx.lineWidth = 1
 	ctx.globalAlpha = 0.3
 	ctx.setLineDash([4, 6])
@@ -135,9 +135,9 @@ function edgeStyle(
 		return { color: colors.edgeDocMemory, width: 1.5 }
 	if (edge.edgeType === "version")
 		return { color: colors.edgeVersion, width: 2 }
-	if (edge.similarity >= 0.9) return { color: colors.edgeSimStrong, width: 2 }
-	if (edge.similarity >= 0.8) return { color: colors.edgeSimMedium, width: 1.5 }
-	return { color: colors.edgeSimWeak, width: 1 }
+	if (edge.edgeType === "same-space")
+		return { color: colors.edgeSameSpace, width: 1 }
+	return { color: colors.edgeSameSpace, width: 1 }
 }
 
 function batchKey(style: { color: string; width: number }): string {
@@ -171,10 +171,9 @@ function drawEdges(
 	const prepared: PreparedEdge[] = []
 
 	for (const edge of edges) {
-		// Zoom-based edge culling for similarity edges
-		if (edge.edgeType === "similarity") {
+		// Zoom-based edge culling for same-space edges (low-priority visual)
+		if (edge.edgeType === "same-space") {
 			if (viewport.zoom < 0.3) continue
-			if (viewport.zoom < 0.5 && edge.similarity < 0.9) continue
 		}
 
 		const src =

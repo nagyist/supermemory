@@ -21,13 +21,6 @@ interface DocumentsResponse {
 
 /** Convert the external API format to the internal graph format */
 function toGraphDocuments(docs: DocumentWithMemories[]): GraphApiDocument[] {
-	// Use a seeded random for deterministic positions
-	let seed = 42
-	const rand = () => {
-		seed = (seed * 16807 + 0) % 2147483647
-		return seed / 2147483647
-	}
-
 	return docs.map((doc) => ({
 		id: doc.id,
 		title: doc.title,
@@ -35,8 +28,6 @@ function toGraphDocuments(docs: DocumentWithMemories[]): GraphApiDocument[] {
 		documentType: doc.documentType,
 		createdAt: doc.createdAt,
 		updatedAt: doc.updatedAt,
-		x: rand() * 1000,
-		y: rand() * 1000,
 		memories: doc.memories.map(
 			(mem): GraphApiMemory => ({
 				id: mem.id,
@@ -136,7 +127,6 @@ export default function Home() {
 		const data = generateMockGraphData({
 			documentCount: count,
 			memoriesPerDoc: [2, 5],
-			similarityEdgeRatio: 0.05,
 			seed: 12345,
 		})
 		setMockData({ documents: data.documents })

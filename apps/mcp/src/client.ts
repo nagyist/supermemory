@@ -45,52 +45,41 @@ export interface Project {
 	documentCount?: number
 }
 
-// Graph API types
-export interface GraphApiMemory {
+// Documents API types
+export interface DocumentMemoryEntry {
 	id: string
 	memory: string
-	isStatic: boolean
-	isLatest: boolean
-	isForgotten: boolean
-	forgetAfter: string | null
-	version: number
-	parentMemoryId: string | null
+	spaceId: string
+	isStatic?: boolean
+	isLatest?: boolean
+	isForgotten?: boolean
+	forgetAfter?: string | null
+	forgetReason?: string | null
+	version?: number
+	parentMemoryId?: string | null
+	rootMemoryId?: string | null
 	createdAt: string
 	updatedAt: string
 }
 
-export interface GraphApiDocument {
+export interface DocumentWithMemories {
 	id: string
 	title: string | null
-	summary: string | null
-	documentType: string
+	summary?: string | null
+	type: string
 	createdAt: string
 	updatedAt: string
-	x: number
-	y: number
-	memories: GraphApiMemory[]
+	memoryEntries: DocumentMemoryEntry[]
 }
 
-export interface GraphApiEdge {
-	source: string
-	target: string
-	similarity: number
-}
-
-export interface GraphViewportResponse {
-	documents: GraphApiDocument[]
-	edges: GraphApiEdge[]
-	viewport: { minX: number; maxX: number; minY: number; maxY: number }
-	totalCount: number
-}
-
-export interface GraphBoundsResponse {
-	bounds: {
-		minX: number
-		maxX: number
-		minY: number
-		maxY: number
-	} | null
+export interface DocumentsApiResponse {
+	documents: DocumentWithMemories[]
+	pagination: {
+		currentPage: number
+		limit: number
+		totalItems: number
+		totalPages: number
+	}
 }
 
 export function getMemoryText(m: Memory): string {
@@ -332,53 +321,33 @@ export class SupermemoryClient {
 		}
 	}
 
-	// Fetch graph bounds for coordinate range
-	async getGraphBounds(containerTags?: string[]): Promise<GraphBoundsResponse> {
-		try {
-			const params = new URLSearchParams()
-			if (containerTags?.length) {
-				params.set("containerTags", JSON.stringify(containerTags))
-			}
-			const url = `${this.apiUrl}/v3/graph/bounds${params.toString() ? `?${params}` : ""}`
-			const response = await fetch(url, {
-				method: "GET",
-				headers: {
-					Authorization: `Bearer ${this.bearerToken}`,
-					"Content-Type": "application/json",
-				},
-			})
-			if (!response.ok) {
-				throw Object.assign(new Error("Failed to fetch graph bounds"), {
-					status: response.status,
-				})
-			}
-			return (await response.json()) as GraphBoundsResponse
-		} catch (error) {
-			this.handleError(error)
-		}
-	}
-
-	// Fetch graph data for a viewport region
-	async getGraphViewport(
-		viewport: { minX: number; maxX: number; minY: number; maxY: number },
+	// Fetch documents with their memory entries
+	async getDocuments(
 		containerTags?: string[],
+		page = 1,
 		limit = 200,
-	): Promise<GraphViewportResponse> {
+	): Promise<DocumentsApiResponse> {
 		try {
-			const response = await fetch(`${this.apiUrl}/v3/graph/viewport`, {
+			const response = await fetch(`${this.apiUrl}/v3/documents/documents`, {
 				method: "POST",
 				headers: {
 					Authorization: `Bearer ${this.bearerToken}`,
 					"Content-Type": "application/json",
 				},
-				body: JSON.stringify({ viewport, containerTags, limit }),
+				body: JSON.stringify({
+					page,
+					limit,
+					sort: "createdAt",
+					order: "desc",
+					containerTags,
+				}),
 			})
 			if (!response.ok) {
-				throw Object.assign(new Error("Failed to fetch graph viewport"), {
+				throw Object.assign(new Error("Failed to fetch documents"), {
 					status: response.status,
 				})
 			}
-			return (await response.json()) as GraphViewportResponse
+			return (await response.json()) as DocumentsApiResponse
 		} catch (error) {
 			this.handleError(error)
 		}

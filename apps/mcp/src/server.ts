@@ -311,21 +311,14 @@ export class SupermemoryMCP extends McpAgent<Env, unknown, Props> {
 						? [effectiveContainerTag]
 						: undefined
 
-					const [bounds, viewport] = await Promise.all([
-						client.getGraphBounds(containerTags),
-						client.getGraphViewport(
-							{ minX: 0, maxX: 1000, minY: 0, maxY: 1000 },
-							containerTags,
-							200,
-						),
-					])
+					const result = await client.getDocuments(containerTags, 1, 200)
 
-					const memoryCount = viewport.documents.reduce(
-						(sum, d) => sum + d.memories.length,
+					const memoryCount = result.documents.reduce(
+						(sum, d) => sum + d.memoryEntries.length,
 						0,
 					)
 					const textParts = [
-						`Memory Graph: ${viewport.documents.length} documents, ${memoryCount} memories, ${viewport.edges.length} connections`,
+						`Memory Graph: ${result.documents.length} documents, ${memoryCount} memories`,
 					]
 					if (effectiveContainerTag) {
 						textParts.push(`Project: ${effectiveContainerTag}`)
@@ -335,10 +328,8 @@ export class SupermemoryMCP extends McpAgent<Env, unknown, Props> {
 						content: [{ type: "text" as const, text: textParts.join(". ") }],
 						structuredContent: {
 							containerTag: effectiveContainerTag,
-							bounds: bounds.bounds,
-							documents: viewport.documents,
-							edges: viewport.edges,
-							totalCount: viewport.totalCount,
+							documents: result.documents,
+							totalCount: result.pagination.totalItems,
 						},
 					}
 				} catch (error) {
@@ -359,20 +350,15 @@ export class SupermemoryMCP extends McpAgent<Env, unknown, Props> {
 			},
 		)
 
-		// App-only tool for the UI to fetch additional graph data
+		// App-only tool for the UI to fetch additional documents (pagination)
 		registerAppTool(
 			this.server,
 			"fetch-graph-data",
 			{
-				description: "Fetch graph data for a viewport region",
+				description: "Fetch documents with memories for graph display",
 				inputSchema: z.object({
 					containerTag: z.string().optional(),
-					viewport: z.object({
-						minX: z.number(),
-						maxX: z.number(),
-						minY: z.number(),
-						maxY: z.number(),
-					}),
+					page: z.number().optional().default(1),
 					limit: z.number().optional().default(200),
 				}),
 				_meta: {
@@ -385,12 +371,7 @@ export class SupermemoryMCP extends McpAgent<Env, unknown, Props> {
 			// @ts-expect-error - zod type inference issue with MCP SDK
 			async (args: {
 				containerTag?: string
-				viewport: {
-					minX: number
-					maxX: number
-					minY: number
-					maxY: number
-				}
+				page?: number
 				limit?: number
 			}) => {
 				try {
@@ -400,9 +381,9 @@ export class SupermemoryMCP extends McpAgent<Env, unknown, Props> {
 					const containerTags = effectiveContainerTag
 						? [effectiveContainerTag]
 						: undefined
-					const data = await client.getGraphViewport(
-						args.viewport,
+					const data = await client.getDocuments(
 						containerTags,
+						args.page,
 						args.limit,
 					)
 

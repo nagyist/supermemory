@@ -23,42 +23,13 @@ export interface GraphApiDocument {
 	documentType: string
 	createdAt: string
 	updatedAt: string
-	x: number
-	y: number
 	memories: GraphApiMemory[]
 }
 
 export interface GraphApiEdge {
 	source: string
 	target: string
-	similarity: number
-}
-
-export interface GraphViewportResponse {
-	documents: GraphApiDocument[]
-	edges: GraphApiEdge[]
-	viewport: {
-		minX: number
-		maxX: number
-		minY: number
-		maxY: number
-	}
-	totalCount: number
-}
-
-export interface GraphBoundsResponse {
-	bounds: {
-		minX: number
-		maxX: number
-		minY: number
-		maxY: number
-	} | null
-}
-
-export interface GraphStatsResponse {
-	totalDocuments: number
-	documentsWithSpatial: number
-	totalDocumentEdges: number
+	edgeType: "doc-memory" | "version" | "same-space"
 }
 
 // Typed node data
@@ -111,12 +82,11 @@ export interface GraphEdge {
 	id: string
 	source: string | GraphNode
 	target: string | GraphNode
-	similarity: number
 	visualProps: {
 		opacity: number
 		thickness: number
 	}
-	edgeType: "doc-memory" | "similarity" | "version"
+	edgeType: "doc-memory" | "version" | "same-space"
 }
 
 export interface GraphThemeColors {
@@ -133,10 +103,7 @@ export interface GraphThemeColors {
 	textMuted: string
 	edgeDocMemory: string
 	edgeVersion: string
-	edgeSimStrong: string
-	edgeSimMedium: string
-	edgeSimWeak: string
-	edgeDocDoc: string
+	edgeSameSpace: string
 	memBorderForgotten: string
 	memBorderExpiring: string
 	memBorderRecent: string
@@ -174,10 +141,14 @@ export interface GraphCanvasProps {
 export interface MemoryGraphProps {
 	/** Documents to display - pass this for direct data mode */
 	documents?: GraphApiDocument[]
-	/** API edges between documents */
-	apiEdges?: GraphApiEdge[]
 	/** Whether data is loading */
 	isLoading?: boolean
+	/** Whether more data is being loaded */
+	isLoadingMore?: boolean
+	/** Callback to load more documents */
+	onLoadMore?: () => void
+	/** Whether there are more documents to load */
+	hasMore?: boolean
 	/** Error from data fetching */
 	error?: Error | null
 	/** Children to render when no documents */

@@ -116,9 +116,8 @@ export const GraphCard = memo<GraphCardProps>(
 	({ containerTags, width = 216, height = 220, className }) => {
 		const { setViewMode } = useViewMode()
 
-		const { data, isLoading, error } = useGraphApi({
+		const { documents, isLoading, error } = useGraphApi({
 			containerTags,
-			limit: 20,
 			enabled: true,
 		})
 
@@ -139,11 +138,8 @@ export const GraphCard = memo<GraphCardProps>(
 			)
 		}
 
-		const documentCount = data.stats?.documentsWithSpatial ?? 0
-		const memoryCount = data.documents.reduce(
-			(sum, d) => sum + d.memories.length,
-			0,
-		)
+		const documentCount = documents.length
+		const memoryCount = documents.reduce((sum, d) => sum + d.memories.length, 0)
 
 		return (
 			<button

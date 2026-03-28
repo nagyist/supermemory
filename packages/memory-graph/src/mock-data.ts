@@ -1,9 +1,8 @@
-import type { GraphApiDocument, GraphApiEdge, GraphApiMemory } from "./types"
+import type { GraphApiDocument, GraphApiMemory } from "./types"
 
 export interface MockGraphOptions {
 	documentCount?: number
 	memoriesPerDoc?: number | [number, number]
-	similarityEdgeRatio?: number
 	seed?: number
 }
 
@@ -246,12 +245,10 @@ function generateISODate(
 
 export function generateMockGraphData(options: MockGraphOptions = {}): {
 	documents: GraphApiDocument[]
-	edges: GraphApiEdge[]
 } {
 	const {
 		documentCount = 100,
 		memoriesPerDoc = [2, 6] as [number, number],
-		similarityEdgeRatio = 0.1,
 		seed = 42,
 	} = options
 
@@ -371,10 +368,6 @@ export function generateMockGraphData(options: MockGraphOptions = {}): {
 			})
 		}
 
-		// Position documents spread across a 1000x1000 space
-		const x = random() * 1000
-		const y = random() * 1000
-
 		documents.push({
 			id: docId,
 			title: generateTitle(random),
@@ -383,69 +376,9 @@ export function generateMockGraphData(options: MockGraphOptions = {}): {
 				DOCUMENT_TYPES[Math.floor(random() * DOCUMENT_TYPES.length)],
 			createdAt: docCreatedAt,
 			updatedAt: docUpdatedAt,
-			x,
-			y,
 			memories,
 		})
 	}
 
-	// Generate similarity edges between random document pairs
-	const edges: GraphApiEdge[] = []
-	const totalPossiblePairs = (documentCount * (documentCount - 1)) / 2
-	const targetEdgeCount = Math.max(
-		0,
-		Math.floor(totalPossiblePairs * similarityEdgeRatio),
-	)
-
-	// Use a set to avoid duplicate pairs
-	const edgeSet = new Set<string>()
-
-	// For small document counts, iterate all pairs; for large, sample randomly
-	if (documentCount <= 50 || targetEdgeCount > totalPossiblePairs * 0.5) {
-		// Iterate all pairs and include based on probability
-		for (let i = 0; i < documentCount; i++) {
-			for (let j = i + 1; j < documentCount; j++) {
-				if (random() < similarityEdgeRatio) {
-					const sourceId = documents[i].id
-					const targetId = documents[j].id
-					const key = `${sourceId}:${targetId}`
-					if (!edgeSet.has(key)) {
-						edgeSet.add(key)
-						// Similarity weighted towards medium-high values
-						const similarity = 0.3 + random() * 0.7
-						edges.push({
-							source: sourceId,
-							target: targetId,
-							similarity: Math.round(similarity * 1000) / 1000,
-						})
-					}
-				}
-			}
-		}
-	} else {
-		// Random sampling for large document counts
-		let attempts = 0
-		const maxAttempts = targetEdgeCount * 5
-		while (edges.length < targetEdgeCount && attempts < maxAttempts) {
-			attempts++
-			const i = Math.floor(random() * documentCount)
-			const j = Math.floor(random() * documentCount)
-			if (i === j) continue
-			const sourceIdx = Math.min(i, j)
-			const targetIdx = Math.max(i, j)
-			const sourceId = documents[sourceIdx].id
-			const targetId = documents[targetIdx].id
-			const key = `${sourceId}:${targetId}`
-			if (edgeSet.has(key)) continue
-			edgeSet.add(key)
-			const similarity = 0.3 + random() * 0.7
-			edges.push({
-				source: sourceId,
-				target: targetId,
-				similarity: Math.round(similarity * 1000) / 1000,
-			})
-		}
-	}
-
-	return { documents, edges }
+	return { documents }
 }
