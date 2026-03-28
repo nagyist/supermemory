@@ -34,111 +34,21 @@ export function renderFrame(
 	colors: GraphThemeColors,
 ): void {
 	ctx.clearRect(0, 0, width, height)
-	drawDocDocLines(ctx, nodes, viewport, width, height, colors)
 	drawEdges(ctx, edges, viewport, width, height, state, nodeMap, colors)
 	drawNodes(ctx, nodes, viewport, width, height, state, colors)
-}
-
-function drawDocDocLines(
-	ctx: CanvasRenderingContext2D,
-	nodes: GraphNode[],
-	viewport: ViewportState,
-	width: number,
-	height: number,
-	colors: GraphThemeColors,
-): void {
-	// Collect visible docs with screen positions
-	const docs: { x: number; y: number }[] = []
-	for (const n of nodes) {
-		if (n.type !== "document") continue
-		const s = viewport.worldToScreen(n.x, n.y)
-		if (s.x > -100 && s.x < width + 100 && s.y > -100 && s.y < height + 100) {
-			docs.push(s)
-		}
-	}
-	if (docs.length < 2) return
-
-	// Build spatial grid for O(n*k) nearest-neighbor instead of O(n^2)
-	const CELL = 200
-	const grid = new Map<string, number[]>()
-	for (let i = 0; i < docs.length; i++) {
-		const d = docs[i]!
-		const key = `${Math.floor(d.x / CELL)},${Math.floor(d.y / CELL)}`
-		let cell = grid.get(key)
-		if (!cell) {
-			cell = []
-			grid.set(key, cell)
-		}
-		cell.push(i)
-	}
-
-	// For each doc, find 2 nearest from neighboring cells only
-	ctx.strokeStyle = colors.edgeSameSpace
-	ctx.lineWidth = 1
-	ctx.globalAlpha = 0.3
-	ctx.setLineDash([4, 6])
-	ctx.beginPath()
-
-	for (let i = 0; i < docs.length; i++) {
-		const d = docs[i]!
-		const cx = Math.floor(d.x / CELL)
-		const cy = Math.floor(d.y / CELL)
-		let best1 = -1
-		let best2 = -1
-		let dist1 = Number.POSITIVE_INFINITY
-		let dist2 = Number.POSITIVE_INFINITY
-
-		for (let dx = -1; dx <= 1; dx++) {
-			for (let dy = -1; dy <= 1; dy++) {
-				const cell = grid.get(`${cx + dx},${cy + dy}`)
-				if (!cell) continue
-				for (const j of cell) {
-					if (j === i) continue
-					const other = docs[j]!
-					const ox = other.x - d.x
-					const oy = other.y - d.y
-					const dist = ox * ox + oy * oy
-					if (dist < dist1) {
-						best2 = best1
-						dist2 = dist1
-						best1 = j
-						dist1 = dist
-					} else if (dist < dist2) {
-						best2 = j
-						dist2 = dist
-					}
-				}
-			}
-		}
-
-		if (best1 >= 0 && i < best1) {
-			const b1 = docs[best1]!
-			ctx.moveTo(d.x, d.y)
-			ctx.lineTo(b1.x, b1.y)
-		}
-		if (best2 >= 0 && i < best2) {
-			const b2 = docs[best2]!
-			ctx.moveTo(d.x, d.y)
-			ctx.lineTo(b2.x, b2.y)
-		}
-	}
-
-	ctx.stroke()
-	ctx.setLineDash([])
-	ctx.globalAlpha = 1
 }
 
 function edgeStyle(
 	edge: GraphEdge,
 	colors: GraphThemeColors,
 ): { color: string; width: number } {
-	if (edge.edgeType === "doc-memory")
-		return { color: colors.edgeDocMemory, width: 1.5 }
-	if (edge.edgeType === "version")
-		return { color: colors.edgeVersion, width: 2 }
-	if (edge.edgeType === "same-space")
-		return { color: colors.edgeSameSpace, width: 1 }
-	return { color: colors.edgeSameSpace, width: 1 }
+	if (edge.edgeType === "derives")
+		return { color: colors.edgeDerives, width: 1.5 }
+	if (edge.edgeType === "updates")
+		return { color: colors.edgeUpdates, width: 2 }
+	if (edge.edgeType === "extends")
+		return { color: colors.edgeExtends, width: 1 }
+	return { color: colors.edgeExtends, width: 1 }
 }
 
 function batchKey(style: { color: string; width: number }): string {
@@ -152,7 +62,7 @@ interface PreparedEdge {
 	endY: number
 	connected: boolean
 	style: { color: string; width: number }
-	isVersion: boolean
+	isUpdates: boolean
 	arrowSize: number
 }
 
@@ -172,8 +82,8 @@ function drawEdges(
 	const prepared: PreparedEdge[] = []
 
 	for (const edge of edges) {
-		// Zoom-based edge culling for same-space edges (low-priority visual)
-		if (edge.edgeType === "same-space") {
+		// Zoom-based edge culling for extends edges (low-priority visual)
+		if (edge.edgeType === "extends") {
 			if (viewport.zoom < 0.3) continue
 		}
 
@@ -183,7 +93,7 @@ function drawEdges(
 			typeof edge.target === "string" ? nodeMap.get(edge.target) : edge.target
 		if (!src || !tgt) continue
 
-		if (edge.edgeType === "doc-memory") {
+		if (edge.edgeType === "derives") {
 			const mem = src.type === "memory" ? src : tgt
 			if (mem.size * viewport.zoom < 3) continue
 		}
@@ -226,9 +136,9 @@ function drawEdges(
 			endY: t.y - uy * tr,
 			connected,
 			style: edgeStyle(edge, colors),
-			isVersion: edge.edgeType === "version",
+			isUpdates: edge.edgeType === "updates",
 			arrowSize:
-				edge.edgeType === "version" ? Math.max(6, 8 * viewport.zoom) : 0,
+				edge.edgeType === "updates" ? Math.max(6, 8 * viewport.zoom) : 0,
 		})
 	}
 
@@ -251,10 +161,10 @@ function drawEdges(
 		if (!first) continue
 		const isDimmed = key.endsWith("|d")
 
-		// Draw glow pass behind version edges for visual emphasis
-		// Version edges share a distinct style key, so a batch is all-version or none
-		const isVersionBatch = first.isVersion
-		if (isVersionBatch && !isDimmed) {
+		// Draw glow pass behind updates edges for visual emphasis
+		// Updates edges share a distinct style key, so a batch is all-updates or none
+		const isUpdatesBatch = first.isUpdates
+		if (isUpdatesBatch && !isDimmed) {
 			ctx.save()
 			ctx.globalAlpha = 0.3
 			ctx.strokeStyle = first.style.color
@@ -279,7 +189,7 @@ function drawEdges(
 		}
 		ctx.stroke()
 
-		if (isVersionBatch) {
+		if (isUpdatesBatch) {
 			ctx.fillStyle = first.style.color
 			for (const e of batch) {
 				drawArrowHead(ctx, e.startX, e.startY, e.endX, e.endY, e.arrowSize)

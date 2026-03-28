@@ -19,11 +19,11 @@ export class ForceSimulation {
 				d3
 					.forceLink<GraphNode, GraphEdge>(edges)
 					.id((d) => d.id)
-					.distance((link) => (link.edgeType === "doc-memory" ? 150 : 300))
+					.distance((link) => (link.edgeType === "derives" ? 150 : 300))
 					.strength((link) => {
-						if (link.edgeType === "doc-memory") return 0.8
-						if (link.edgeType === "version") return 1.0
-						if (link.edgeType === "same-space") return 0.1
+						if (link.edgeType === "derives") return 0.8
+						if (link.edgeType === "updates") return 1.0
+						if (link.edgeType === "extends") return 0.1
 						return 0.3
 					}),
 			)

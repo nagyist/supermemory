@@ -32,15 +32,9 @@ function resolveColors(): GraphThemeColors {
 			DEFAULT_COLORS.textSecondary,
 		),
 		textMuted: readCssVar("--graph-text-muted", DEFAULT_COLORS.textMuted),
-		edgeDocMemory: readCssVar(
-			"--graph-edge-doc-mem",
-			DEFAULT_COLORS.edgeDocMemory,
-		),
-		edgeVersion: readCssVar("--graph-edge-version", DEFAULT_COLORS.edgeVersion),
-		edgeSameSpace: readCssVar(
-			"--graph-edge-same-space",
-			DEFAULT_COLORS.edgeSameSpace,
-		),
+		edgeDerives: readCssVar("--graph-edge-derives", DEFAULT_COLORS.edgeDerives),
+		edgeUpdates: readCssVar("--graph-edge-updates", DEFAULT_COLORS.edgeUpdates),
+		edgeExtends: readCssVar("--graph-edge-extends", DEFAULT_COLORS.edgeExtends),
 		memBorderForgotten: readCssVar(
 			"--graph-mem-border-forgotten",
 			DEFAULT_COLORS.memBorderForgotten,

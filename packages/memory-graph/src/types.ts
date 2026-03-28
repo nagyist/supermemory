@@ -29,7 +29,7 @@ export interface GraphApiDocument {
 export interface GraphApiEdge {
 	source: string
 	target: string
-	edgeType: "doc-memory" | "version" | "same-space"
+	edgeType: "derives" | "updates" | "extends"
 }
 
 // Typed node data
@@ -86,7 +86,7 @@ export interface GraphEdge {
 		opacity: number
 		thickness: number
 	}
-	edgeType: "doc-memory" | "version" | "same-space"
+	edgeType: "derives" | "updates" | "extends"
 }
 
 export interface GraphThemeColors {
@@ -101,9 +101,9 @@ export interface GraphThemeColors {
 	textPrimary: string
 	textSecondary: string
 	textMuted: string
-	edgeDocMemory: string
-	edgeVersion: string
-	edgeSameSpace: string
+	edgeDerives: string
+	edgeUpdates: string
+	edgeExtends: string
 	memBorderForgotten: string
 	memBorderExpiring: string
 	memBorderRecent: string

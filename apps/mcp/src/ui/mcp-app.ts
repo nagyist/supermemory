@@ -84,7 +84,7 @@ type GraphNode = MemoryNode | DocumentNode
 interface GraphLink extends LinkObject {
 	source: string | GraphNode
 	target: string | GraphNode
-	edgeType: "doc-memory" | "version" | "same-space"
+	edgeType: "derives" | "updates" | "extends"
 }
 
 // =============================================================================
@@ -99,14 +99,14 @@ const MEMORY_BORDER = {
 
 const EDGE_COLORS = {
 	dark: {
-		"doc-memory": "#4A5568",
-		version: "#8B5CF6",
-		"same-space": "#00D4B8",
+		derives: "#3B82F6",
+		updates: "#8B5CF6",
+		extends: "#14B8A6",
 	},
 	light: {
-		"doc-memory": "#A0AEC0",
-		version: "#8B5CF6",
-		"same-space": "#0D9488",
+		derives: "#60A5FA",
+		updates: "#8B5CF6",
+		extends: "#2DD4BF",
 	},
 }
 
@@ -174,7 +174,7 @@ function transformData(data: ToolResultData): {
 	const nodeIds = new Set<string>()
 	const SPREAD = 50
 
-	// Group documents by spaceId for same-space edges
+	// Group documents by spaceId for extends edges
 	const spaceGroups = new Map<string, string[]>()
 
 	for (const doc of data.documents) {
@@ -214,19 +214,19 @@ function transformData(data: ToolResultData): {
 			} as MemoryNode)
 			nodeIds.add(mem.id)
 
-			// Doc-memory link
-			links.push({ source: doc.id, target: mem.id, edgeType: "doc-memory" })
+			// Derives link
+			links.push({ source: doc.id, target: mem.id, edgeType: "derives" })
 
-			// Version chain link
+			// Updates link
 			if (mem.parentMemoryId && nodeIds.has(mem.parentMemoryId)) {
 				links.push({
 					source: mem.parentMemoryId,
 					target: mem.id,
-					edgeType: "version",
+					edgeType: "updates",
 				})
 			}
 
-			// Track space groups for same-space edges
+			// Track space groups for extends edges
 			if (mem.spaceId) {
 				const group = spaceGroups.get(mem.spaceId)
 				if (group) group.push(doc.id)
@@ -235,7 +235,7 @@ function transformData(data: ToolResultData): {
 		}
 	}
 
-	// Same-space edges between documents sharing a space
+	// Extends edges between documents sharing a space
 	const addedEdges = new Set<string>()
 	for (const docIds of spaceGroups.values()) {
 		const unique = [...new Set(docIds)]
@@ -247,7 +247,7 @@ function transformData(data: ToolResultData): {
 					links.push({
 						source: unique[i]!,
 						target: unique[j]!,
-						edgeType: "same-space",
+						edgeType: "extends",
 					})
 				}
 			}
@@ -313,7 +313,7 @@ function drawDocumentNode(
 // =============================================================================
 function getLinkColor(link: GraphLink): string {
 	const palette = isDark ? EDGE_COLORS.dark : EDGE_COLORS.light
-	return palette[link.edgeType] || palette["doc-memory"]
+	return palette[link.edgeType] || palette["derives"]
 }
 
 const graph = new ForceGraph<GraphNode, GraphLink>(container)
@@ -366,17 +366,17 @@ const graph = new ForceGraph<GraphNode, GraphLink>(container)
 		},
 	)
 	.linkWidth((link: GraphLink) => {
-		if (link.edgeType === "version") return 2
-		if (link.edgeType === "same-space") return 0.5
+		if (link.edgeType === "updates") return 2
+		if (link.edgeType === "extends") return 0.5
 		return 1
 	})
 	.linkColor(getLinkColor)
 	.linkLineDash((link: GraphLink) => {
-		if (link.edgeType === "same-space") return [4, 2]
+		if (link.edgeType === "extends") return [4, 2]
 		return null as unknown as number[]
 	})
 	.linkDirectionalArrowLength((link: GraphLink) =>
-		link.edgeType === "version" ? 4 : 0,
+		link.edgeType === "updates" ? 4 : 0,
 	)
 	.linkDirectionalArrowRelPos(1)
 	.onNodeClick(handleNodeClick)
@@ -390,11 +390,11 @@ const graph = new ForceGraph<GraphNode, GraphLink>(container)
 	.d3Force(
 		"link",
 		forceLink()
-			.distance((l: GraphLink) => (l.edgeType === "doc-memory" ? 40 : 80))
+			.distance((l: GraphLink) => (l.edgeType === "derives" ? 40 : 80))
 			.strength((l: GraphLink) => {
-				if (l.edgeType === "doc-memory") return 0.8
-				if (l.edgeType === "version") return 1.0
-				return 0.15 // same-space
+				if (l.edgeType === "derives") return 0.8
+				if (l.edgeType === "updates") return 1.0
+				return 0.15 // extends
 			}),
 	)
 	.d3Force("collide", forceCollide(18))

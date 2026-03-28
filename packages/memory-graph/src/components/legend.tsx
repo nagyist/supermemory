@@ -383,20 +383,20 @@ export const Legend = memo(function Legend({
 										>
 											<div style={rowStyle}>
 												<div style={rowLeftStyle}>
-													<LineIcon color={colors.edgeDocMemory} />
-													<span style={edgeLabelStyle}>Doc &gt; Memory</span>
+													<LineIcon color={colors.edgeDerives} />
+													<span style={edgeLabelStyle}>Derives</span>
 												</div>
 											</div>
 											<div style={rowStyle}>
 												<div style={rowLeftStyle}>
-													<LineIcon color={colors.edgeVersion} />
-													<span style={edgeLabelStyle}>Version chain</span>
+													<LineIcon color={colors.edgeUpdates} />
+													<span style={edgeLabelStyle}>Updates</span>
 												</div>
 											</div>
 											<div style={rowStyle}>
 												<div style={rowLeftStyle}>
-													<LineIcon color={colors.edgeSameSpace} dashed />
-													<span style={edgeLabelStyle}>Same space</span>
+													<LineIcon color={colors.edgeExtends} dashed />
+													<span style={edgeLabelStyle}>Extends</span>
 												</div>
 											</div>
 										</div>

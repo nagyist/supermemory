@@ -29,11 +29,11 @@ export function getMemoryBorderColor(
 
 export function getEdgeVisualProps(edgeType: string) {
 	switch (edgeType) {
-		case "doc-memory":
+		case "derives":
 			return { opacity: 0.3, thickness: 1.5 }
-		case "version":
+		case "updates":
 			return { opacity: 0.6, thickness: 2 }
-		case "same-space":
+		case "extends":
 			return { opacity: 0.15, thickness: 1 }
 		default:
 			return { opacity: 0.3, thickness: 1 }
@@ -168,20 +168,20 @@ export function useGraphData(
 			for (const mem of doc.memories) allNodeIds.add(mem.id)
 		}
 
-		// Doc-memory edges
+		// Derives edges (doc -> memory)
 		for (const doc of documents) {
 			for (const mem of doc.memories) {
 				result.push({
 					id: `dm-${doc.id}-${mem.id}`,
 					source: doc.id,
 					target: mem.id,
-					visualProps: getEdgeVisualProps("doc-memory"),
-					edgeType: "doc-memory",
+					visualProps: getEdgeVisualProps("derives"),
+					edgeType: "derives",
 				})
 			}
 		}
 
-		// Version chain edges
+		// Updates edges (version chain)
 		for (const doc of documents) {
 			for (const mem of doc.memories) {
 				if (mem.parentMemoryId && allNodeIds.has(mem.parentMemoryId)) {
@@ -189,14 +189,14 @@ export function useGraphData(
 						id: `ver-${mem.parentMemoryId}-${mem.id}`,
 						source: mem.parentMemoryId,
 						target: mem.id,
-						visualProps: getEdgeVisualProps("version"),
-						edgeType: "version",
+						visualProps: getEdgeVisualProps("updates"),
+						edgeType: "updates",
 					})
 				}
 			}
 		}
 
-		// Same-space edges: connect documents that share a spaceId
+		// Extends edges: connect documents that share a spaceId
 		const spaceGroups = new Map<string, string[]>()
 		for (const doc of documents) {
 			for (const mem of doc.memories) {
@@ -221,8 +221,8 @@ export function useGraphData(
 							id: `ss-${key}`,
 							source: a,
 							target: b,
-							visualProps: getEdgeVisualProps("same-space"),
-							edgeType: "same-space",
+							visualProps: getEdgeVisualProps("extends"),
+							edgeType: "extends",
 						})
 					}
 				}
