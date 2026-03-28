@@ -427,6 +427,8 @@ export function MemoryGraph({
 		}
 
 		let lastIdx = -1
+		let coolDownTimer: ReturnType<typeof setTimeout> | null = null
+
 		const pick = () => {
 			const currentNodes = nodesRef.current
 			if (currentNodes.length === 0) return
@@ -445,12 +447,20 @@ export function MemoryGraph({
 			viewportRef.current?.centerOn(n.x, n.y, sz.width, sz.height)
 			simulationRef.current?.reheat()
 			onSlideshowNodeChangeRef.current?.(n.id)
-			setTimeout(() => simulationRef.current?.coolDown(), 1000)
+			// Clear any pending coolDown before scheduling a new one
+			if (coolDownTimer) clearTimeout(coolDownTimer)
+			coolDownTimer = setTimeout(() => {
+				simulationRef.current?.coolDown()
+				coolDownTimer = null
+			}, 1000)
 		}
 
 		pick()
 		const interval = setInterval(pick, 3500)
-		return () => clearInterval(interval)
+		return () => {
+			clearInterval(interval)
+			if (coolDownTimer) clearTimeout(coolDownTimer)
+		}
 	}, [isSlideshowActive, nodes.length])
 
 	// Active node: selected takes priority, then hovered

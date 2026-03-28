@@ -30,11 +30,11 @@ export function getMemoryBorderColor(
 export function getEdgeVisualProps(edgeType: string) {
 	switch (edgeType) {
 		case "derives":
-			return { opacity: 0.3, thickness: 1.5 }
+			return { opacity: 0.35, thickness: 1 }
 		case "updates":
-			return { opacity: 0.6, thickness: 2 }
+			return { opacity: 0.6, thickness: 1.5 }
 		case "extends":
-			return { opacity: 0.15, thickness: 1 }
+			return { opacity: 0.3, thickness: 1 }
 		default:
 			return { opacity: 0.3, thickness: 1 }
 	}
@@ -51,6 +51,74 @@ function hashToUnit(str: string): number {
 		h = (Math.imul(31, h) + str.charCodeAt(i)) | 0
 	}
 	return ((h >>> 0) % 10000) / 10000
+}
+
+/**
+ * Pure function that computes graph edges from documents.
+ * Extracted from the hook for testability.
+ */
+export function computeEdges(documents: GraphApiDocument[]): GraphEdge[] {
+	if (!documents || documents.length === 0) return []
+
+	const result: GraphEdge[] = []
+	const allNodeIds = new Set<string>()
+	for (const doc of documents) {
+		allNodeIds.add(doc.id)
+		for (const mem of doc.memories) allNodeIds.add(mem.id)
+	}
+
+	// 1. Derives edges: document -> memory (structural)
+	for (const doc of documents) {
+		for (const mem of doc.memories) {
+			result.push({
+				id: `dm-${doc.id}-${mem.id}`,
+				source: doc.id,
+				target: mem.id,
+				visualProps: getEdgeVisualProps("derives"),
+				edgeType: "derives",
+			})
+		}
+	}
+
+	// 2. Memory-to-memory relation edges from backend data.
+	//    Uses memoryRelations (Record<targetId, relationType>) as primary source,
+	//    falls back to parentMemoryId for legacy data.
+	for (const doc of documents) {
+		for (const mem of doc.memories) {
+			let relations: Record<string, string> = {}
+
+			// Defensive: API may return unexpected types at runtime
+			if (
+				mem.memoryRelations &&
+				typeof mem.memoryRelations === "object" &&
+				Object.keys(mem.memoryRelations).length > 0
+			) {
+				relations = mem.memoryRelations
+			} else if (mem.parentMemoryId) {
+				// Legacy fallback: parentMemoryId implies "updates"
+				relations = { [mem.parentMemoryId]: "updates" }
+			}
+
+			for (const [targetId, relationType] of Object.entries(relations)) {
+				if (!allNodeIds.has(targetId)) continue
+				const edgeType =
+					relationType === "updates" ||
+					relationType === "extends" ||
+					relationType === "derives"
+						? relationType
+						: "updates"
+				result.push({
+					id: `rel-${targetId}-${mem.id}`,
+					source: targetId,
+					target: mem.id,
+					visualProps: getEdgeVisualProps(edgeType),
+					edgeType,
+				})
+			}
+		}
+	}
+
+	return result
 }
 
 export function useGraphData(
@@ -170,69 +238,7 @@ export function useGraphData(
 		return result
 	}, [documents, canvasWidth, canvasHeight, draggingNodeId, colors])
 
-	const edges = useMemo(() => {
-		if (!documents || documents.length === 0) return []
-
-		const result: GraphEdge[] = []
-		const allNodeIds = new Set<string>()
-		for (const doc of documents) {
-			allNodeIds.add(doc.id)
-			for (const mem of doc.memories) allNodeIds.add(mem.id)
-		}
-
-		// 1. Derives edges: document -> memory (structural)
-		for (const doc of documents) {
-			for (const mem of doc.memories) {
-				result.push({
-					id: `dm-${doc.id}-${mem.id}`,
-					source: doc.id,
-					target: mem.id,
-					visualProps: getEdgeVisualProps("derives"),
-					edgeType: "derives",
-				})
-			}
-		}
-
-		// 2. Memory-to-memory relation edges from backend data.
-		//    Uses memoryRelations (Record<targetId, relationType>) as primary source,
-		//    falls back to parentMemoryId for legacy data.
-		for (const doc of documents) {
-			for (const mem of doc.memories) {
-				let relations: Record<string, string> = {}
-
-				// Defensive: API may return unexpected types at runtime
-				if (
-					mem.memoryRelations &&
-					typeof mem.memoryRelations === "object" &&
-					Object.keys(mem.memoryRelations).length > 0
-				) {
-					relations = mem.memoryRelations
-				} else if (mem.parentMemoryId) {
-					// Legacy fallback: parentMemoryId implies "updates"
-					relations = { [mem.parentMemoryId]: "updates" }
-				}
-
-				for (const [targetId, relationType] of Object.entries(relations)) {
-					if (!allNodeIds.has(targetId)) continue
-					const edgeType =
-						relationType === "updates" ||
-						relationType === "extends" ||
-						relationType === "derives"
-							? relationType
-							: "updates"
-					result.push({
-						id: `rel-${targetId}-${mem.id}`,
-						source: targetId,
-						target: mem.id,
-						visualProps: getEdgeVisualProps(edgeType),
-						edgeType,
-					})
-				}
-			}
-		}
-
-		return result
-	}, [documents])
+	const edges = useMemo(() => computeEdges(documents), [documents])
 
 	return { nodes, edges }
 }

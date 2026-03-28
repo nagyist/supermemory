@@ -59,11 +59,11 @@ function edgeStyle(
 	colors: GraphThemeColors,
 ): { color: string; width: number; opacity: number } {
 	if (edge.edgeType === "derives")
-		return { color: colors.edgeDerives, width: 0.8, opacity: 0.18 }
+		return { color: colors.edgeDerives, width: 1, opacity: 0.35 }
 	if (edge.edgeType === "updates")
-		return { color: colors.edgeUpdates, width: 1.2, opacity: 0.45 }
-	// "extends" and any unknown edge types share the same subtle style
-	return { color: colors.edgeExtends, width: 0.6, opacity: 0.12 }
+		return { color: colors.edgeUpdates, width: 1.5, opacity: 0.6 }
+	// "extends" and any unknown edge types
+	return { color: colors.edgeExtends, width: 1, opacity: 0.3 }
 }
 
 function batchKey(style: {
@@ -404,7 +404,7 @@ function drawNodes(
 
 		// Draw dimmed (superseded) memory dots at reduced opacity
 		if (dimmedDots.length > 0) {
-			ctx.globalAlpha = dimAlpha * 0.3
+			ctx.globalAlpha = dimAlpha * 0.5
 			ctx.fillStyle = colors.memFill
 			ctx.beginPath()
 			for (const d of dimmedDots) {
@@ -506,7 +506,7 @@ function drawMemoryNode(
 	// Dim superseded (non-latest) memory nodes with strikethrough effect
 	if (isSuperseded && !isSelected && !isHovered) {
 		const prevAlpha = ctx.globalAlpha
-		ctx.globalAlpha = prevAlpha * 0.3
+		ctx.globalAlpha = prevAlpha * 0.5
 		ctx.fillStyle = colors.memFill
 		drawHexagon(ctx, sx, sy, radius)
 		ctx.fill()

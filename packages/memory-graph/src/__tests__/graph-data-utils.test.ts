@@ -61,19 +61,19 @@ describe("getMemoryBorderColor", () => {
 describe("getEdgeVisualProps", () => {
 	it("returns correct props for derives edges", () => {
 		const props = getEdgeVisualProps("derives")
-		expect(props.opacity).toBeCloseTo(0.3)
-		expect(props.thickness).toBeCloseTo(1.5)
+		expect(props.opacity).toBeCloseTo(0.35)
+		expect(props.thickness).toBeCloseTo(1)
 	})
 
 	it("returns correct props for updates edges", () => {
 		const props = getEdgeVisualProps("updates")
 		expect(props.opacity).toBeCloseTo(0.6)
-		expect(props.thickness).toBeCloseTo(2)
+		expect(props.thickness).toBeCloseTo(1.5)
 	})
 
 	it("returns correct props for extends edges", () => {
 		const props = getEdgeVisualProps("extends")
-		expect(props.opacity).toBeCloseTo(0.15)
+		expect(props.opacity).toBeCloseTo(0.3)
 		expect(props.thickness).toBeCloseTo(1)
 	})
 
