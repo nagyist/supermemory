@@ -1,8 +1,11 @@
 // Graph API types matching backend response
 
+export type MemoryRelation = "updates" | "extends" | "derives"
+
 export interface GraphApiMemory {
 	id: string
 	memory: string
+	content?: string | null
 	isStatic: boolean
 	spaceId: string
 	isLatest: boolean
@@ -14,6 +17,13 @@ export interface GraphApiMemory {
 	rootMemoryId: string | null
 	createdAt: string
 	updatedAt: string
+	// Relation fields from backend
+	relation?: MemoryRelation | null
+	updatesMemoryId?: string | null
+	nextVersionId?: string | null
+	memoryRelations?: Record<string, MemoryRelation> | null
+	// Source/join fields
+	spaceContainerTag?: string | null
 }
 
 export interface GraphApiDocument {
@@ -59,6 +69,8 @@ export interface MemoryNodeData {
 	spaceId: string
 	createdAt: string
 	updatedAt: string
+	relation?: MemoryRelation | null
+	memoryRelations?: Record<string, MemoryRelation> | null
 }
 
 export interface GraphNode {

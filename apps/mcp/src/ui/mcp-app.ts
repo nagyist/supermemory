@@ -37,6 +37,8 @@ interface GraphApiMemory {
 	rootMemoryId: string | null
 	createdAt: string
 	updatedAt: string
+	relation?: "updates" | "extends" | "derives" | null
+	memoryRelations?: Record<string, "updates" | "extends" | "derives"> | null
 }
 
 interface GraphApiDocument {
@@ -174,9 +176,6 @@ function transformData(data: ToolResultData): {
 	const nodeIds = new Set<string>()
 	const SPREAD = 50
 
-	// Group documents by spaceId for extends edges
-	const spaceGroups = new Map<string, string[]>()
-
 	for (const doc of data.documents) {
 		const pos = initialPosition(doc.id, SPREAD)
 		nodes.push({
@@ -214,42 +213,31 @@ function transformData(data: ToolResultData): {
 			} as MemoryNode)
 			nodeIds.add(mem.id)
 
-			// Derives link
+			// Derives link (doc -> memory)
 			links.push({ source: doc.id, target: mem.id, edgeType: "derives" })
 
-			// Updates link
-			if (mem.parentMemoryId && nodeIds.has(mem.parentMemoryId)) {
-				links.push({
-					source: mem.parentMemoryId,
-					target: mem.id,
-					edgeType: "updates",
-				})
+			// Memory-to-memory relation edges from backend data.
+			// Uses memoryRelations as primary source, falls back to parentMemoryId.
+			let relations: Record<string, string> = {}
+			if (
+				mem.memoryRelations &&
+				typeof mem.memoryRelations === "object" &&
+				Object.keys(mem.memoryRelations).length > 0
+			) {
+				relations = mem.memoryRelations
+			} else if (mem.parentMemoryId) {
+				relations = { [mem.parentMemoryId]: "updates" }
 			}
 
-			// Track space groups for extends edges
-			if (mem.spaceId) {
-				const group = spaceGroups.get(mem.spaceId)
-				if (group) group.push(doc.id)
-				else spaceGroups.set(mem.spaceId, [doc.id])
-			}
-		}
-	}
-
-	// Extends edges between documents sharing a space
-	const addedEdges = new Set<string>()
-	for (const docIds of spaceGroups.values()) {
-		const unique = [...new Set(docIds)]
-		for (let i = 0; i < unique.length; i++) {
-			for (let j = i + 1; j < unique.length; j++) {
-				const key = `${unique[i]}:${unique[j]}`
-				if (!addedEdges.has(key)) {
-					addedEdges.add(key)
-					links.push({
-						source: unique[i]!,
-						target: unique[j]!,
-						edgeType: "extends",
-					})
-				}
+			for (const [targetId, relationType] of Object.entries(relations)) {
+				if (!nodeIds.has(targetId)) continue
+				const edgeType =
+					relationType === "updates" ||
+					relationType === "extends" ||
+					relationType === "derives"
+						? relationType
+						: "updates"
+				links.push({ source: targetId, target: mem.id, edgeType })
 			}
 		}
 	}

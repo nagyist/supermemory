@@ -18,6 +18,7 @@ interface UseGraphApiOptions {
 interface ApiMemoryEntry {
 	id: string
 	memory: string
+	content?: string | null
 	spaceId: string
 	isStatic?: boolean
 	isLatest?: boolean
@@ -29,6 +30,11 @@ interface ApiMemoryEntry {
 	rootMemoryId?: string | null
 	createdAt: string
 	updatedAt: string
+	relation?: "updates" | "extends" | "derives" | null
+	updatesMemoryId?: string | null
+	nextVersionId?: string | null
+	memoryRelations?: Record<string, "updates" | "extends" | "derives"> | null
+	spaceContainerTag?: string | null
 }
 
 interface ApiDocument {
@@ -54,7 +60,7 @@ interface ApiDocumentsResponse {
 function toGraphMemory(mem: ApiMemoryEntry): GraphApiMemory {
 	return {
 		id: mem.id,
-		memory: mem.memory,
+		memory: mem.memory ?? mem.content ?? "",
 		isStatic: mem.isStatic ?? false,
 		spaceId: mem.spaceId ?? "",
 		isLatest: mem.isLatest ?? true,
@@ -66,6 +72,11 @@ function toGraphMemory(mem: ApiMemoryEntry): GraphApiMemory {
 		rootMemoryId: mem.rootMemoryId ?? null,
 		createdAt: mem.createdAt,
 		updatedAt: mem.updatedAt,
+		relation: mem.relation ?? null,
+		updatesMemoryId: mem.updatesMemoryId ?? null,
+		nextVersionId: mem.nextVersionId ?? null,
+		memoryRelations: mem.memoryRelations ?? null,
+		spaceContainerTag: mem.spaceContainerTag ?? null,
 	}
 }
 

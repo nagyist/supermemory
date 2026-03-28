@@ -323,6 +323,8 @@ export function generateMockGraphData(options: MockGraphOptions = {}): {
 			let version = 1
 			let isLatest = true
 			let isForgotten = false
+			let memoryRelations: Record<string, "updates" | "extends" | "derives"> =
+				{}
 
 			// Build version chain for first few memories if applicable
 			if (hasVersionChain && m < 3) {
@@ -342,12 +344,27 @@ export function generateMockGraphData(options: MockGraphOptions = {}): {
 					chainPrevId = memId
 					isLatest = m === 2 // last in the 3-memory chain
 					isForgotten = !isLatest && random() < 0.2
+					// Add "updates" relation to parent
+					if (parentMemoryId) {
+						memoryRelations = { [parentMemoryId]: "updates" }
+					}
 				}
 			} else {
 				// Standalone memory
 				isForgotten = random() < 0.1
 				isLatest = true
 				version = 1
+				// Randomly add extends/derives relations to earlier memories in this doc
+				if (m > 0 && random() < 0.2) {
+					const targetIdx = Math.floor(random() * m)
+					const targetMem = memories[targetIdx]
+					if (targetMem) {
+						const relType = random() < 0.5 ? "extends" : "derives"
+						memoryRelations = {
+							[targetMem.id]: relType as "extends" | "derives",
+						}
+					}
+				}
 			}
 
 			// Determine forgetAfter (for some non-forgotten memories, set a future expiry)
@@ -376,6 +393,8 @@ export function generateMockGraphData(options: MockGraphOptions = {}): {
 				rootMemoryId,
 				createdAt: memCreatedAt,
 				updatedAt: memUpdatedAt,
+				memoryRelations:
+					Object.keys(memoryRelations).length > 0 ? memoryRelations : undefined,
 			})
 		}
 

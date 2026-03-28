@@ -180,7 +180,7 @@ export function useGraphData(
 			for (const mem of doc.memories) allNodeIds.add(mem.id)
 		}
 
-		// Derives edges (doc -> memory)
+		// 1. Derives edges: document -> memory (structural)
 		for (const doc of documents) {
 			for (const mem of doc.memories) {
 				result.push({
@@ -193,50 +193,39 @@ export function useGraphData(
 			}
 		}
 
-		// Updates edges (version chain)
+		// 2. Memory-to-memory relation edges from backend data.
+		//    Uses memoryRelations (Record<targetId, relationType>) as primary source,
+		//    falls back to parentMemoryId for legacy data.
 		for (const doc of documents) {
 			for (const mem of doc.memories) {
-				if (mem.parentMemoryId && allNodeIds.has(mem.parentMemoryId)) {
-					result.push({
-						id: `ver-${mem.parentMemoryId}-${mem.id}`,
-						source: mem.parentMemoryId,
-						target: mem.id,
-						visualProps: getEdgeVisualProps("updates"),
-						edgeType: "updates",
-					})
-				}
-			}
-		}
+				let relations: Record<string, string> = {}
 
-		// Extends edges: connect documents that share a spaceId
-		const spaceGroups = new Map<string, string[]>()
-		for (const doc of documents) {
-			for (const mem of doc.memories) {
-				const group = spaceGroups.get(mem.spaceId)
-				if (group) {
-					if (!group.includes(doc.id)) group.push(doc.id)
-				} else {
-					spaceGroups.set(mem.spaceId, [doc.id])
+				if (
+					mem.memoryRelations &&
+					typeof mem.memoryRelations === "object" &&
+					Object.keys(mem.memoryRelations).length > 0
+				) {
+					relations = mem.memoryRelations
+				} else if (mem.parentMemoryId) {
+					// Legacy fallback: parentMemoryId implies "updates"
+					relations = { [mem.parentMemoryId]: "updates" }
 				}
-			}
-		}
-		const addedPairs = new Set<string>()
-		for (const docIds of spaceGroups.values()) {
-			for (let i = 0; i < docIds.length; i++) {
-				for (let j = i + 1; j < docIds.length; j++) {
-					const a = docIds[i]!
-					const b = docIds[j]!
-					const key = a < b ? `${a}:${b}` : `${b}:${a}`
-					if (!addedPairs.has(key)) {
-						addedPairs.add(key)
-						result.push({
-							id: `ss-${key}`,
-							source: a,
-							target: b,
-							visualProps: getEdgeVisualProps("extends"),
-							edgeType: "extends",
-						})
-					}
+
+				for (const [targetId, relationType] of Object.entries(relations)) {
+					if (!allNodeIds.has(targetId)) continue
+					const edgeType =
+						relationType === "updates" ||
+						relationType === "extends" ||
+						relationType === "derives"
+							? relationType
+							: "updates"
+					result.push({
+						id: `rel-${targetId}-${mem.id}`,
+						source: targetId,
+						target: mem.id,
+						visualProps: getEdgeVisualProps(edgeType),
+						edgeType,
+					})
 				}
 			}
 		}

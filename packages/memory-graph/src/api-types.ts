@@ -1,9 +1,12 @@
+export type MemoryRelation = "updates" | "extends" | "derives"
+
 export interface MemoryEntry {
 	id: string
-	content: string
+	content: string | null
+	memory?: string | null
 	createdAt: string
 	updatedAt: string
-	spaceId?: string
+	spaceId?: string | null
 	embedding?: number[]
 	isStatic?: boolean
 	isForgotten?: boolean
@@ -13,6 +16,16 @@ export interface MemoryEntry {
 	parentMemoryId?: string | null
 	rootMemoryId?: string | null
 	isLatest?: boolean
+	// Relation fields from backend
+	relation?: MemoryRelation | null
+	updatesMemoryId?: string | null
+	nextVersionId?: string | null
+	memoryRelations?: Record<string, MemoryRelation> | null
+	// Source/join fields
+	sourceAddedAt?: string | null
+	sourceRelevanceScore?: number | null
+	sourceMetadata?: Record<string, unknown> | null
+	spaceContainerTag?: string | null
 }
 
 export interface DocumentWithMemories {
