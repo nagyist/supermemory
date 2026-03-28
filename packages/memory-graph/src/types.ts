@@ -39,7 +39,7 @@ export interface GraphApiDocument {
 export interface GraphApiEdge {
 	source: string
 	target: string
-	edgeType: "derives" | "updates" | "extends"
+	edgeType: MemoryRelation
 }
 
 // Typed node data
@@ -98,7 +98,7 @@ export interface GraphEdge {
 		opacity: number
 		thickness: number
 	}
-	edgeType: "derives" | "updates" | "extends"
+	edgeType: MemoryRelation
 }
 
 export interface GraphThemeColors {
@@ -221,5 +221,4 @@ export type {
 	DocumentWithMemories,
 	MemoryEntry,
 	DocumentsResponse,
-	MemoryRelation,
 } from "./api-types"

@@ -6,6 +6,7 @@ import { $fetch } from "@lib/api"
 import type {
 	GraphApiDocument,
 	GraphApiMemory,
+	MemoryRelation,
 } from "@supermemory/memory-graph"
 
 const PAGE_SIZE = 100
@@ -30,10 +31,10 @@ interface ApiMemoryEntry {
 	rootMemoryId?: string | null
 	createdAt: string
 	updatedAt: string
-	relation?: "updates" | "extends" | "derives" | null
+	relation?: MemoryRelation | null
 	updatesMemoryId?: string | null
 	nextVersionId?: string | null
-	memoryRelations?: Record<string, "updates" | "extends" | "derives"> | null
+	memoryRelations?: Record<string, MemoryRelation> | null
 	spaceContainerTag?: string | null
 }
 

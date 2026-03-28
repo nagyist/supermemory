@@ -173,8 +173,15 @@ function transformData(data: ToolResultData): {
 } {
 	const nodes: GraphNode[] = []
 	const links: GraphLink[] = []
-	const nodeIds = new Set<string>()
 	const SPREAD = 50
+
+	// Pre-populate all node IDs so edge targets are always resolvable
+	// regardless of iteration order.
+	const nodeIds = new Set<string>()
+	for (const doc of data.documents) {
+		nodeIds.add(doc.id)
+		for (const mem of doc.memories) nodeIds.add(mem.id)
+	}
 
 	for (const doc of data.documents) {
 		const pos = initialPosition(doc.id, SPREAD)
@@ -189,7 +196,6 @@ function transformData(data: ToolResultData): {
 			x: pos.x,
 			y: pos.y,
 		} as DocumentNode)
-		nodeIds.add(doc.id)
 
 		const memCount = doc.memories.length
 		for (let i = 0; i < memCount; i++) {
@@ -211,15 +217,16 @@ function transformData(data: ToolResultData): {
 				x: pos.x + Math.cos(angle) * CLUSTER_SPREAD,
 				y: pos.y + Math.sin(angle) * CLUSTER_SPREAD,
 			} as MemoryNode)
-			nodeIds.add(mem.id)
 
 			// Derives link (doc -> memory)
 			links.push({ source: doc.id, target: mem.id, edgeType: "derives" })
 
 			// Memory-to-memory relation edges from backend data.
 			// Uses memoryRelations as primary source, falls back to parentMemoryId.
+			// Keep in sync with packages/memory-graph/src/hooks/use-graph-data.ts
 			let relations: Record<string, string> = {}
 			if (
+				// Defensive: data comes from structuredContent cast, may be unexpected type
 				mem.memoryRelations &&
 				typeof mem.memoryRelations === "object" &&
 				Object.keys(mem.memoryRelations).length > 0

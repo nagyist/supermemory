@@ -361,7 +361,7 @@ export function generateMockGraphData(options: MockGraphOptions = {}): {
 					if (targetMem) {
 						const relType = random() < 0.5 ? "extends" : "derives"
 						memoryRelations = {
-							[targetMem.id]: relType as "extends" | "derives",
+							[targetMem.id]: relType,
 						}
 					}
 				}

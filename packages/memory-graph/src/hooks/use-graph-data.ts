@@ -200,6 +200,7 @@ export function useGraphData(
 			for (const mem of doc.memories) {
 				let relations: Record<string, string> = {}
 
+				// Defensive: API may return unexpected types at runtime
 				if (
 					mem.memoryRelations &&
 					typeof mem.memoryRelations === "object" &&
