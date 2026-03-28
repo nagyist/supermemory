@@ -57,7 +57,7 @@ function LineIcon({
 				style={{
 					width: 12,
 					height: 0,
-					borderTop: `1.6px ${dashed ? "dashed" : "solid"} ${color}`,
+					borderTop: `2.5px ${dashed ? "dashed" : "solid"} ${color}`,
 				}}
 			/>
 		</div>

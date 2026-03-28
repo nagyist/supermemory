@@ -59,11 +59,11 @@ function edgeStyle(
 	colors: GraphThemeColors,
 ): { color: string; width: number; opacity: number } {
 	if (edge.edgeType === "derives")
-		return { color: colors.edgeDerives, width: 1, opacity: 0.35 }
+		return { color: colors.edgeDerives, width: 1.2, opacity: 0.45 }
 	if (edge.edgeType === "updates")
-		return { color: colors.edgeUpdates, width: 1.5, opacity: 0.6 }
+		return { color: colors.edgeUpdates, width: 2, opacity: 0.7 }
 	// "extends" and any unknown edge types
-	return { color: colors.edgeExtends, width: 1, opacity: 0.3 }
+	return { color: colors.edgeExtends, width: 1.2, opacity: 0.4 }
 }
 
 function batchKey(style: {

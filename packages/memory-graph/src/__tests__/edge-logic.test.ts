@@ -645,12 +645,11 @@ describe("getEdgeVisualProps: all MemoryRelation values return valid visual prop
 		expect(upd.opacity).toBeGreaterThan(der.opacity)
 	})
 
-	it("unknown edge type returns default props (opacity 0.3, thickness 1)", () => {
-		// The default case returns { opacity: 0.3, thickness: 1 }.
-		// opacity matches derives (0.3), but thickness is intentionally 1 (not 1.5),
-		// a safe conservative fallback that doesn't match any specific known type.
+	it("unknown edge type returns default props (opacity 0.4, thickness 1.2)", () => {
+		// The default case returns { opacity: 0.4, thickness: 1.2 }.
+		// A safe conservative fallback that doesn't match any specific known type.
 		const unknown = getEdgeVisualProps("nonexistent")
-		expect(unknown.opacity).toBeCloseTo(0.3)
-		expect(unknown.thickness).toBeCloseTo(1)
+		expect(unknown.opacity).toBeCloseTo(0.4)
+		expect(unknown.thickness).toBeCloseTo(1.2)
 	})
 })
