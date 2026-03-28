@@ -18,6 +18,20 @@ export interface RenderState {
 // Module-level reusable batch map – cleared each frame instead of reallocating
 const edgeBatches = new Map<string, PreparedEdge[]>()
 
+/** Group items by their `color` property into batches for efficient canvas drawing */
+function groupByColor<T extends { color: string }>(items: T[]): Map<string, T[]> {
+	const map = new Map<string, T[]>()
+	for (const item of items) {
+		let batch = map.get(item.color)
+		if (!batch) {
+			batch = []
+			map.set(item.color, batch)
+		}
+		batch.push(item)
+	}
+	return map
+}
+
 // Cache for lightenColor results to avoid per-frame hex parsing
 let _lightenCache: { input: string; amount: number; result: string } | null =
 	null
@@ -46,8 +60,7 @@ function edgeStyle(
 		return { color: colors.edgeDerives, width: 0.8, opacity: 0.18 }
 	if (edge.edgeType === "updates")
 		return { color: colors.edgeUpdates, width: 1.2, opacity: 0.45 }
-	if (edge.edgeType === "extends")
-		return { color: colors.edgeExtends, width: 0.6, opacity: 0.12 }
+	// "extends" and any unknown edge types share the same subtle style
 	return { color: colors.edgeExtends, width: 0.6, opacity: 0.12 }
 }
 
@@ -354,16 +367,7 @@ function drawNodes(
 		if (normalDots.length > 0) {
 			// Subtle glow behind memory dots for luminous effect
 			ctx.globalAlpha = dimAlpha * 0.25
-			const byColorGlow = new Map<string, typeof normalDots>()
-			for (const d of normalDots) {
-				let batch = byColorGlow.get(d.color)
-				if (!batch) {
-					batch = []
-					byColorGlow.set(d.color, batch)
-				}
-				batch.push(d)
-			}
-			for (const [color, batch] of byColorGlow) {
+			for (const [color, batch] of groupByColor(normalDots)) {
 				ctx.fillStyle = color
 				ctx.beginPath()
 				for (const d of batch) {
@@ -385,16 +389,7 @@ function drawNodes(
 
 			// Colored border
 			ctx.lineWidth = 1.5
-			const byColor = new Map<string, typeof normalDots>()
-			for (const d of normalDots) {
-				let batch = byColor.get(d.color)
-				if (!batch) {
-					batch = []
-					byColor.set(d.color, batch)
-				}
-				batch.push(d)
-			}
-			for (const [color, batch] of byColor) {
+			for (const [color, batch] of groupByColor(normalDots)) {
 				ctx.strokeStyle = color
 				ctx.beginPath()
 				for (const d of batch) {
@@ -417,16 +412,7 @@ function drawNodes(
 			ctx.fill()
 
 			ctx.lineWidth = 1
-			const byColor = new Map<string, typeof dimmedDots>()
-			for (const d of dimmedDots) {
-				let batch = byColor.get(d.color)
-				if (!batch) {
-					batch = []
-					byColor.set(d.color, batch)
-				}
-				batch.push(d)
-			}
-			for (const [color, batch] of byColor) {
+			for (const [color, batch] of groupByColor(dimmedDots)) {
 				ctx.strokeStyle = color
 				ctx.beginPath()
 				for (const d of batch) {

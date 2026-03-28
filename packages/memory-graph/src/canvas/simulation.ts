@@ -32,7 +32,7 @@ export class ForceSimulation {
 							return FORCE_CONFIG.linkStrength.version
 						if (link.edgeType === "extends")
 							return FORCE_CONFIG.linkStrength.docDocBase
-						return 0.3
+						return FORCE_CONFIG.linkStrength.fallback
 					}),
 			)
 
@@ -50,11 +50,11 @@ export class ForceSimulation {
 							? FORCE_CONFIG.collisionRadius.document
 							: FORCE_CONFIG.collisionRadius.memory,
 					)
-					.strength(0.7),
+					.strength(FORCE_CONFIG.collisionStrength),
 			)
 
-			this.sim.force("x", d3.forceX().strength(0.03))
-			this.sim.force("y", d3.forceY().strength(0.03))
+			this.sim.force("x", d3.forceX().strength(FORCE_CONFIG.centeringStrength))
+			this.sim.force("y", d3.forceY().strength(FORCE_CONFIG.centeringStrength))
 
 			this.sim.stop()
 			this.sim.alpha(1)

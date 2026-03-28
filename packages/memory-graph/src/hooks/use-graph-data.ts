@@ -11,7 +11,7 @@ import type {
 
 const SEVEN_DAYS_MS = 7 * 24 * 60 * 60 * 1000
 const ONE_DAY_MS = 24 * 60 * 60 * 1000
-const MEMORY_CLUSTER_SPREAD = 150
+const MEMORY_ORBIT_BASE = 120
 
 export function getMemoryBorderColor(
 	mem: GraphApiMemory,
@@ -80,16 +80,24 @@ export function useGraphData(
 		if (!documents || documents.length === 0) return []
 
 		const result: GraphNode[] = []
-		// Place nodes in the canvas space; force simulation will refine positions
-		const spreadW = Math.max(canvasWidth * 0.8, 400)
-		const spreadH = Math.max(canvasHeight * 0.8, 400)
-		const padX = (canvasWidth - spreadW) / 2
-		const padY = (canvasHeight - spreadH) / 2
+		// Spiral layout: documents form a compact spiral core, memories orbit
+		// around their parent documents. The force simulation then gently
+		// pushes memories outward to create the constellation/starburst effect.
+		const cx = canvasWidth / 2
+		const cy = canvasHeight / 2
+		const docCount = documents.length
+		// Compact spiral -- just enough to avoid overlap. The simulation
+		// handles the final spread via charge repulsion.
+		const spiralScale = Math.sqrt(docCount) * 25
 
-		for (const doc of documents) {
-			// Deterministic initial position based on doc id
-			const initialX = padX + hashToUnit(doc.id) * spreadW
-			const initialY = padY + hashToUnit(`${doc.id}-y`) * spreadH
+		for (let docIdx = 0; docIdx < docCount; docIdx++) {
+			const doc = documents[docIdx]
+			// Golden-angle spiral for even distribution
+			const goldenAngle = Math.PI * (3 - Math.sqrt(5))
+			const angle = docIdx * goldenAngle
+			const radius = spiralScale * Math.sqrt((docIdx + 1) / docCount)
+			const initialX = cx + Math.cos(angle) * radius
+			const initialY = cy + Math.sin(angle) * radius
 
 			let docNode = nodeCache.current.get(doc.id)
 			const docData: DocumentNodeData = {
@@ -137,12 +145,17 @@ export function useGraphData(
 					memNode.borderColor = getMemoryBorderColor(mem, colors)
 					memNode.isDragging = draggingNodeId === mem.id
 				} else {
-					const angle = (i / memCount) * 2 * Math.PI
+					// Place memories in a ring around their parent document,
+					// with slight randomness from hash for organic feel
+					const memAngle =
+						(i / memCount) * 2 * Math.PI + hashToUnit(mem.id) * 0.5
+					const memRadius =
+						MEMORY_ORBIT_BASE + hashToUnit(`${mem.id}-r`) * 60
 					memNode = {
 						id: mem.id,
 						type: "memory",
-						x: docNode.x + Math.cos(angle) * MEMORY_CLUSTER_SPREAD,
-						y: docNode.y + Math.sin(angle) * MEMORY_CLUSTER_SPREAD,
+						x: docNode.x + Math.cos(memAngle) * memRadius,
+						y: docNode.y + Math.sin(memAngle) * memRadius,
 						data: memData,
 						size: 36,
 						borderColor: getMemoryBorderColor(mem, colors),

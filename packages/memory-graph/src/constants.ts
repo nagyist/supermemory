@@ -9,14 +9,17 @@ export const MEMORY_BORDER_KEYS = {
 
 export const FORCE_CONFIG = {
 	linkStrength: {
-		docMemory: 0.6,
+		docMemory: 0.25,
 		version: 0.8,
 		docDocBase: 0.15,
+		fallback: 0.15,
 	},
-	linkDistance: 450,
-	docMemoryDistance: 200,
-	chargeStrength: -2500,
-	collisionRadius: { document: 90, memory: 45 },
+	linkDistance: 200,
+	docMemoryDistance: 150,
+	chargeStrength: -1500,
+	collisionRadius: { document: 60, memory: 30 },
+	collisionStrength: 0.6,
+	centeringStrength: 0.25,
 	alphaDecay: 0.04,
 	alphaMin: 0.001,
 	velocityDecay: 0.6,
