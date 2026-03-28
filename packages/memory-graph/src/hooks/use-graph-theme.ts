@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import type { GraphThemeColors } from "../types"
 import { DEFAULT_COLORS } from "../constants"
 
@@ -102,9 +102,20 @@ export function useGraphTheme(
 		}
 	}, [])
 
-	// Apply overrides if provided
-	if (overrides) {
-		return { ...colors, ...overrides }
-	}
-	return colors
+	// Serialize overrides to a stable string key so useMemo only recomputes
+	// when the actual override values change, not on every render.
+	const overrideKey = overrides
+		? Object.entries(overrides)
+				.sort(([a], [b]) => a.localeCompare(b))
+				.map(([k, v]) => `${k}:${v}`)
+				.join(",")
+		: ""
+
+	const merged = useMemo(
+		() => (overrides ? { ...colors, ...overrides } : colors),
+		// biome-ignore lint/correctness/useExhaustiveDependencies: overrideKey tracks overrides by value
+		[colors, overrideKey],
+	)
+
+	return merged
 }
