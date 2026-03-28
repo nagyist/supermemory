@@ -19,7 +19,9 @@ export interface RenderState {
 const edgeBatches = new Map<string, PreparedEdge[]>()
 
 /** Group items by their `color` property into batches for efficient canvas drawing */
-function groupByColor<T extends { color: string }>(items: T[]): Map<string, T[]> {
+function groupByColor<T extends { color: string }>(
+	items: T[],
+): Map<string, T[]> {
 	const map = new Map<string, T[]>()
 	for (const item of items) {
 		let batch = map.get(item.color)

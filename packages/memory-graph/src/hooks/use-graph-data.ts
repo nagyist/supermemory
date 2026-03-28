@@ -89,11 +89,11 @@ export function useGraphData(
 		// Compact spiral -- just enough to avoid overlap. The simulation
 		// handles the final spread via charge repulsion.
 		const spiralScale = Math.sqrt(docCount) * 25
+		// Golden angle (~137.5 deg) produces optimal packing in a spiral
+		const goldenAngle = Math.PI * (3 - Math.sqrt(5))
 
 		for (let docIdx = 0; docIdx < docCount; docIdx++) {
 			const doc = documents[docIdx]
-			// Golden-angle spiral for even distribution
-			const goldenAngle = Math.PI * (3 - Math.sqrt(5))
 			const angle = docIdx * goldenAngle
 			const radius = spiralScale * Math.sqrt((docIdx + 1) / docCount)
 			const initialX = cx + Math.cos(angle) * radius
@@ -149,8 +149,7 @@ export function useGraphData(
 					// with slight randomness from hash for organic feel
 					const memAngle =
 						(i / memCount) * 2 * Math.PI + hashToUnit(mem.id) * 0.5
-					const memRadius =
-						MEMORY_ORBIT_BASE + hashToUnit(`${mem.id}-r`) * 60
+					const memRadius = MEMORY_ORBIT_BASE + hashToUnit(`${mem.id}-r`) * 60
 					memNode = {
 						id: mem.id,
 						type: "memory",
