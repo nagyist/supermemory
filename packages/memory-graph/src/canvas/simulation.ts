@@ -9,6 +9,11 @@ export class ForceSimulation {
 		this.destroy()
 
 		try {
+			// Only use structural edges (derives, updates) for the force layout.
+			// "extends" edges are visual-only -- they connect documents sharing a
+			// spaceId but should not pull documents together into a single mass.
+			const structuralEdges = edges.filter((e) => e.edgeType !== "extends")
+
 			this.sim = d3
 				.forceSimulation<GraphNode>(nodes)
 				.alphaDecay(FORCE_CONFIG.alphaDecay)
@@ -18,7 +23,7 @@ export class ForceSimulation {
 			this.sim.force(
 				"link",
 				d3
-					.forceLink<GraphNode, GraphEdge>(edges)
+					.forceLink<GraphNode, GraphEdge>(structuralEdges)
 					.id((d) => d.id)
 					.distance((link) =>
 						link.edgeType === "derives"
@@ -30,8 +35,6 @@ export class ForceSimulation {
 							return FORCE_CONFIG.linkStrength.docMemory
 						if (link.edgeType === "updates")
 							return FORCE_CONFIG.linkStrength.version
-						if (link.edgeType === "extends")
-							return FORCE_CONFIG.linkStrength.docDocBase
 						return FORCE_CONFIG.linkStrength.fallback
 					}),
 			)
@@ -70,7 +73,8 @@ export class ForceSimulation {
 		if (!this.sim) return
 		this.sim.nodes(nodes)
 		const linkForce = this.sim.force<d3.ForceLink<GraphNode, GraphEdge>>("link")
-		if (linkForce) linkForce.links(edges)
+		if (linkForce)
+			linkForce.links(edges.filter((e) => e.edgeType !== "extends"))
 	}
 
 	reheat(): void {
