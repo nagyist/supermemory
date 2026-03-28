@@ -29,6 +29,13 @@ const DOCUMENT_TYPES = [
 	"json",
 	"notion",
 	"text",
+	"google_doc",
+	"google_sheet",
+	"google_slide",
+	"tweet",
+	"youtube",
+	"image",
+	"note",
 ] as const
 
 const TITLE_PREFIXES = [
