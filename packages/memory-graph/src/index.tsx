@@ -35,4 +35,5 @@ export type {
 	DocumentWithMemories,
 	MemoryEntry,
 	DocumentsResponse,
+	MemoryRelation,
 } from "./api-types"

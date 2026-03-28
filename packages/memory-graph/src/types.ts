@@ -1,6 +1,6 @@
 // Graph API types matching backend response
 
-export type MemoryRelation = "updates" | "extends" | "derives"
+import type { MemoryRelation } from "./api-types"
 
 export interface GraphApiMemory {
 	id: string
@@ -221,4 +221,5 @@ export type {
 	DocumentWithMemories,
 	MemoryEntry,
 	DocumentsResponse,
+	MemoryRelation,
 } from "./api-types"

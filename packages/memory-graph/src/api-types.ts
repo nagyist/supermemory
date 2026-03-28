@@ -2,8 +2,8 @@ export type MemoryRelation = "updates" | "extends" | "derives"
 
 export interface MemoryEntry {
 	id: string
-	content: string | null
-	memory?: string | null
+	memory: string
+	content?: string | null
 	createdAt: string
 	updatedAt: string
 	spaceId?: string | null
