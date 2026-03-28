@@ -31,9 +31,13 @@ export function MemoryGraph({
 	totalCount,
 }: MemoryGraphProps) {
 	const resolvedColors = useGraphTheme(colorOverrides)
-	const colors: GraphThemeColors = colorOverrides
-		? { ...resolvedColors, ...colorOverrides }
-		: resolvedColors
+	const colors = useMemo<GraphThemeColors>(
+		() =>
+			colorOverrides
+				? { ...resolvedColors, ...colorOverrides }
+				: resolvedColors,
+		[resolvedColors, colorOverrides],
+	)
 
 	const [containerSize, setContainerSize] = useState({ width: 0, height: 0 })
 	const [containerBounds, setContainerBounds] = useState<DOMRect | null>(null)
