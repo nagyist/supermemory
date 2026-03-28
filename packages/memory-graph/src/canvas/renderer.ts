@@ -686,7 +686,6 @@ function drawHexagon(
 	ctx.closePath()
 }
 
-
 /** Lighten a 6-digit hex color by a fraction (0-1). Cached to avoid per-frame parsing. */
 export function lightenColor(hex: string, amount: number): string {
 	if (

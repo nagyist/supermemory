@@ -160,9 +160,13 @@ export class SupermemoryClient {
 					message: `Successfully forgot memory (exact match) with ID: ${result.id}`,
 					containerTag: this.containerTag,
 				}
-			} catch (error: any) {
+			} catch (error: unknown) {
 				// If not 404, it's a real error - re-throw it
-				if (error?.status !== 404) {
+				const status =
+					error && typeof error === "object" && "status" in error
+						? (error as Record<string, unknown>).status
+						: undefined
+				if (status !== 404) {
 					throw error
 				}
 				// Otherwise continue to semantic search fallback
