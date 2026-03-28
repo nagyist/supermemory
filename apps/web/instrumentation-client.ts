@@ -4,6 +4,24 @@
 
 import * as Sentry from "@sentry/nextjs"
 
+function sentryShouldDropExpectedNonActionableError(event: {
+	message?: string
+	exception?: { values?: Array<{ type?: string; value?: string }> }
+}): boolean {
+	const patterns = [
+		/user location is not supported/i,
+		/this email domain is not allowed/i,
+	]
+	const matches = (s: string | undefined) =>
+		s != null && patterns.some((re) => re.test(s))
+
+	if (matches(event.message)) return true
+	for (const ex of event.exception?.values ?? []) {
+		if (matches(ex.value)) return true
+	}
+	return false
+}
+
 Sentry.init({
 	dsn: "https://2451ebfd1a7490f05fa7776482df81b6@o4508385422802944.ingest.us.sentry.io/4509872269819904",
 
@@ -25,6 +43,11 @@ Sentry.init({
 
 	// Setting this option to true will print useful information to the console while you're setting up Sentry.
 	debug: false,
+
+	beforeSend(event) {
+		if (sentryShouldDropExpectedNonActionableError(event)) return null
+		return event
+	},
 })
 
 export const onRouterTransitionStart = Sentry.captureRouterTransitionStart

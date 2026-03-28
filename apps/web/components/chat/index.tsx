@@ -21,7 +21,6 @@ import {
 	Check,
 	ChevronDownIcon,
 	HistoryIcon,
-	PanelRightCloseIcon,
 	Plus,
 	SearchIcon,
 	SquarePenIcon,
@@ -33,11 +32,12 @@ import { cn } from "@lib/utils"
 import { dmSansClassName } from "@/lib/fonts"
 import ChatInput from "./input"
 import ChatModelSelector from "./model-selector"
+import { getNovaChatErrorCopy } from "@/lib/chat-stream-error"
 import { GradientLogo, LogoBgGradient } from "@ui/assets/Logo"
 import { useProject } from "@/stores"
 import { useContainerTags } from "@/hooks/use-container-tags"
 import { getChatSpaceDisplayLabel } from "@/lib/chat-space-label"
-import type { ModelId } from "@/lib/models"
+import { modelNames, type ModelId } from "@/lib/models"
 import { SuperLoader } from "../superloader"
 import { UserMessage } from "./message/user-message"
 import { AgentMessage } from "./message/agent-message"
@@ -197,10 +197,31 @@ export function ChatSidebar({
 		return () => window.removeEventListener("scroll", handleWindowScroll)
 	}, [isMobile, viewMode])
 
-	const { messages, sendMessage, status, setMessages, stop } = useChat({
+	const {
+		messages,
+		sendMessage,
+		status,
+		setMessages,
+		stop,
+		error,
+		clearError,
+	} = useChat({
 		id: currentChatId ?? undefined,
 		transport: chatTransport,
 	})
+
+	const chatStreamError = useMemo(
+		() => (error ? getNovaChatErrorCopy(error, selectedModel) : null),
+		[error, selectedModel],
+	)
+
+	const handleModelChange = useCallback(
+		(modelId: ModelId) => {
+			setSelectedModel(modelId)
+			clearError()
+		},
+		[clearError],
+	)
 
 	useEffect(() => {
 		if (pendingThreadLoad && currentChatId === pendingThreadLoad.id) {
@@ -550,7 +571,7 @@ export function ChatSidebar({
 						<div className="flex items-center gap-3 min-w-0 flex-1 mr-2">
 							<ChatModelSelector
 								selectedModel={selectedModel}
-								onModelChange={setSelectedModel}
+								onModelChange={handleModelChange}
 							/>
 							<div
 								className={cn(
@@ -823,6 +844,57 @@ export function ChatSidebar({
 									<ChevronDownIcon className="size-4 text-white" />
 								</div>
 							</button>
+						</div>
+					)}
+
+					{chatStreamError && (
+						<div
+							role="alert"
+							className={cn(
+								"mx-4 mb-2 rounded-lg bg-amber-950/40 px-3 py-2 text-sm text-amber-50/95",
+								dmSansClassName(),
+							)}
+						>
+							<div className="flex justify-between gap-2 items-start">
+								<div className="min-w-0">
+									<p className="font-medium leading-snug">
+										{chatStreamError.title}
+									</p>
+									<p className="text-xs text-amber-100/70 mt-1 leading-snug">
+										{chatStreamError.body}
+									</p>
+									{chatStreamError.otherModels.length > 0 && (
+										<div className="flex flex-wrap gap-2 mt-2">
+											{chatStreamError.otherModels.map((id) => {
+												const m = modelNames[id]
+												return (
+													<Button
+														key={id}
+														type="button"
+														size="sm"
+														variant="secondary"
+														className="h-8 text-xs rounded-full bg-[#141922] border-[#73737333] hover:bg-[#1a2230] text-white/90"
+														onClick={() => {
+															handleModelChange(id)
+															analytics.modelChanged({ model: id })
+														}}
+													>
+														Switch to {m.name} {m.version}
+													</Button>
+												)
+											})}
+										</div>
+									)}
+								</div>
+								<button
+									type="button"
+									onClick={clearError}
+									className="shrink-0 p-1 rounded-md text-amber-200/50 hover:text-amber-100/90 hover:bg-white/5"
+									aria-label="Dismiss error"
+								>
+									<XIcon className="size-4" />
+								</button>
+							</div>
 						</div>
 					)}
 
