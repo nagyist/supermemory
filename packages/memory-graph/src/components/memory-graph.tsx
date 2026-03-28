@@ -55,10 +55,20 @@ export function MemoryGraph({
 	// Used as a dependency proxy to recalculate popover positions
 	const [viewportVersion, setViewportVersion] = useState(0)
 
-	// Limit documents if maxNodes is set
+	// Limit documents so total node count (documents + their memories) stays under maxNodes
 	const limitedDocuments = useMemo(() => {
-		if (!maxNodes || documents.length <= maxNodes) return documents
-		return documents.slice(0, maxNodes)
+		if (!maxNodes || documents.length === 0) return documents
+		let totalNodes = 0
+		let cutoff = documents.length
+		for (let i = 0; i < documents.length; i++) {
+			const docNodes = 1 + (documents[i]?.memories?.length ?? 0)
+			if (totalNodes + docNodes > maxNodes) {
+				cutoff = i
+				break
+			}
+			totalNodes += docNodes
+		}
+		return cutoff === documents.length ? documents : documents.slice(0, cutoff)
 	}, [documents, maxNodes])
 
 	const { nodes, edges } = useGraphData(
