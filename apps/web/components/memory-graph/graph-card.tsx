@@ -85,6 +85,8 @@ function StaticGraphPreview({
 			height={height}
 			className="absolute inset-0"
 			viewBox={`0 0 ${width} ${height}`}
+			role="img"
+			aria-label="Memory graph preview"
 		>
 			{edges.map((e, i) => (
 				<line
