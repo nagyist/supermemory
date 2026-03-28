@@ -11,7 +11,7 @@ import type {
 
 const SEVEN_DAYS_MS = 7 * 24 * 60 * 60 * 1000
 const ONE_DAY_MS = 24 * 60 * 60 * 1000
-const MEMORY_ORBIT_BASE = 120
+const MEMORY_ORBIT_BASE = 200
 
 export function getMemoryBorderColor(
 	mem: GraphApiMemory,
@@ -86,9 +86,9 @@ export function useGraphData(
 		const cx = canvasWidth / 2
 		const cy = canvasHeight / 2
 		const docCount = documents.length
-		// Compact spiral -- just enough to avoid overlap. The simulation
-		// handles the final spread via charge repulsion.
-		const spiralScale = Math.sqrt(docCount) * 25
+		// Wide spiral so documents start well-separated. The simulation
+		// refines positions but the initial spread prevents clustering.
+		const spiralScale = Math.sqrt(docCount) * 60
 		// Golden angle (~137.5 deg) produces optimal packing in a spiral
 		const goldenAngle = Math.PI * (3 - Math.sqrt(5))
 
@@ -149,7 +149,7 @@ export function useGraphData(
 					// with slight randomness from hash for organic feel
 					const memAngle =
 						(i / memCount) * 2 * Math.PI + hashToUnit(mem.id) * 0.5
-					const memRadius = MEMORY_ORBIT_BASE + hashToUnit(`${mem.id}-r`) * 60
+					const memRadius = MEMORY_ORBIT_BASE + hashToUnit(`${mem.id}-r`) * 120
 					memNode = {
 						id: mem.id,
 						type: "memory",

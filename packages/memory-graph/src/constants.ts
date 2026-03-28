@@ -9,22 +9,22 @@ export const MEMORY_BORDER_KEYS = {
 
 export const FORCE_CONFIG = {
 	linkStrength: {
-		docMemory: 0.25,
-		version: 0.8,
-		docDocBase: 0.15,
-		fallback: 0.15,
+		docMemory: 0.12,
+		version: 0.5,
+		docDocBase: 0.08,
+		fallback: 0.08,
 	},
-	linkDistance: 200,
-	docMemoryDistance: 150,
-	chargeStrength: -1500,
-	collisionRadius: { document: 60, memory: 30 },
-	collisionStrength: 0.6,
-	centeringStrength: 0.25,
-	alphaDecay: 0.04,
+	linkDistance: 300,
+	docMemoryDistance: 220,
+	chargeStrength: -2500,
+	collisionRadius: { document: 70, memory: 35 },
+	collisionStrength: 0.7,
+	centeringStrength: 0.08,
+	alphaDecay: 0.025,
 	alphaMin: 0.001,
-	velocityDecay: 0.6,
+	velocityDecay: 0.45,
 	alphaTarget: 0.3,
-	preSettleTicks: 120,
+	preSettleTicks: 250,
 }
 
 export const GRAPH_SETTINGS = {
