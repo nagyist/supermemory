@@ -9,19 +9,19 @@ export const MEMORY_BORDER_KEYS = {
 
 export const FORCE_CONFIG = {
 	linkStrength: {
-		docMemory: 0.8,
-		version: 1.0,
-		docDocBase: 0.3,
+		docMemory: 0.6,
+		version: 0.8,
+		docDocBase: 0.15,
 	},
-	linkDistance: 300,
-	docMemoryDistance: 150,
-	chargeStrength: -1000,
-	collisionRadius: { document: 80, memory: 40 },
+	linkDistance: 450,
+	docMemoryDistance: 200,
+	chargeStrength: -2500,
+	collisionRadius: { document: 90, memory: 45 },
 	alphaDecay: 0.04,
 	alphaMin: 0.001,
 	velocityDecay: 0.6,
 	alphaTarget: 0.3,
-	preSettleTicks: 100,
+	preSettleTicks: 120,
 }
 
 export const GRAPH_SETTINGS = {
@@ -45,9 +45,9 @@ export const DEFAULT_COLORS: GraphThemeColors = {
 	textPrimary: "#ffffff",
 	textSecondary: "#e2e8f0",
 	textMuted: "#94a3b8",
-	edgeDerives: "#3B82F6",
-	edgeUpdates: "#8B5CF6",
-	edgeExtends: "#14B8A6",
+	edgeDerives: "#38BDF8",
+	edgeUpdates: "#A78BFA",
+	edgeExtends: "#2DD4BF",
 	memBorderForgotten: "#EF4444",
 	memBorderExpiring: "#F59E0B",
 	memBorderRecent: "#10B981",

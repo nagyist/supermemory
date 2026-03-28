@@ -41,18 +41,22 @@ export function renderFrame(
 function edgeStyle(
 	edge: GraphEdge,
 	colors: GraphThemeColors,
-): { color: string; width: number } {
+): { color: string; width: number; opacity: number } {
 	if (edge.edgeType === "derives")
-		return { color: colors.edgeDerives, width: 1.5 }
+		return { color: colors.edgeDerives, width: 0.8, opacity: 0.18 }
 	if (edge.edgeType === "updates")
-		return { color: colors.edgeUpdates, width: 2 }
+		return { color: colors.edgeUpdates, width: 1.2, opacity: 0.45 }
 	if (edge.edgeType === "extends")
-		return { color: colors.edgeExtends, width: 1 }
-	return { color: colors.edgeExtends, width: 1 }
+		return { color: colors.edgeExtends, width: 0.6, opacity: 0.12 }
+	return { color: colors.edgeExtends, width: 0.6, opacity: 0.12 }
 }
 
-function batchKey(style: { color: string; width: number }): string {
-	return `${style.color}|${style.width}`
+function batchKey(style: {
+	color: string
+	width: number
+	opacity: number
+}): string {
+	return `${style.color}|${style.width}|${style.opacity}`
 }
 
 interface PreparedEdge {
@@ -61,7 +65,7 @@ interface PreparedEdge {
 	endX: number
 	endY: number
 	connected: boolean
-	style: { color: string; width: number }
+	style: { color: string; width: number; opacity: number }
 	isUpdates: boolean
 	arrowSize: number
 }
@@ -161,14 +165,13 @@ function drawEdges(
 		if (!first) continue
 		const isDimmed = key.endsWith("|d")
 
-		// Draw glow pass behind updates edges for visual emphasis
-		// Updates edges share a distinct style key, so a batch is all-updates or none
+		// Draw subtle glow pass behind updates edges
 		const isUpdatesBatch = first.isUpdates
 		if (isUpdatesBatch && !isDimmed) {
 			ctx.save()
-			ctx.globalAlpha = 0.3
+			ctx.globalAlpha = first.style.opacity * 0.4
 			ctx.strokeStyle = first.style.color
-			ctx.lineWidth = first.style.width + 4
+			ctx.lineWidth = first.style.width + 2
 			ctx.beginPath()
 			for (const e of batch) {
 				ctx.moveTo(e.startX, e.startY)
@@ -178,7 +181,10 @@ function drawEdges(
 			ctx.restore()
 		}
 
-		ctx.globalAlpha = isDimmed ? 1 - state.dimProgress * 0.8 : 1
+		const baseAlpha = first.style.opacity
+		ctx.globalAlpha = isDimmed
+			? baseAlpha * (1 - state.dimProgress * 0.8)
+			: baseAlpha
 		ctx.strokeStyle = first.style.color
 		ctx.lineWidth = first.style.width
 
@@ -190,6 +196,9 @@ function drawEdges(
 		ctx.stroke()
 
 		if (isUpdatesBatch) {
+			ctx.globalAlpha = isDimmed
+				? first.style.opacity * 0.6 * (1 - state.dimProgress * 0.8)
+				: first.style.opacity * 0.6
 			ctx.fillStyle = first.style.color
 			for (const e of batch) {
 				drawArrowHead(ctx, e.startX, e.startY, e.endX, e.endY, e.arrowSize)
@@ -343,6 +352,28 @@ function drawNodes(
 		const dimmedDots = memDots.filter((d) => d.dimmed)
 
 		if (normalDots.length > 0) {
+			// Subtle glow behind memory dots for luminous effect
+			ctx.globalAlpha = dimAlpha * 0.25
+			const byColorGlow = new Map<string, typeof normalDots>()
+			for (const d of normalDots) {
+				let batch = byColorGlow.get(d.color)
+				if (!batch) {
+					batch = []
+					byColorGlow.set(d.color, batch)
+				}
+				batch.push(d)
+			}
+			for (const [color, batch] of byColorGlow) {
+				ctx.fillStyle = color
+				ctx.beginPath()
+				for (const d of batch) {
+					ctx.moveTo(d.x + d.r * 2.5, d.y)
+					ctx.arc(d.x, d.y, d.r * 2.5, 0, Math.PI * 2)
+				}
+				ctx.fill()
+			}
+
+			// Filled dot
 			ctx.globalAlpha = dimAlpha
 			ctx.fillStyle = colors.memFill
 			ctx.beginPath()
@@ -352,6 +383,7 @@ function drawNodes(
 			}
 			ctx.fill()
 
+			// Colored border
 			ctx.lineWidth = 1.5
 			const byColor = new Map<string, typeof normalDots>()
 			for (const d of normalDots) {

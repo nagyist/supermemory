@@ -99,14 +99,14 @@ const MEMORY_BORDER = {
 
 const EDGE_COLORS = {
 	dark: {
-		derives: "#3B82F6",
-		updates: "#8B5CF6",
-		extends: "#14B8A6",
+		derives: "#38BDF8",
+		updates: "#A78BFA",
+		extends: "#2DD4BF",
 	},
 	light: {
-		derives: "#60A5FA",
-		updates: "#8B5CF6",
-		extends: "#2DD4BF",
+		derives: "#7DD3FC",
+		updates: "#A78BFA",
+		extends: "#5EEAD4",
 	},
 }
 

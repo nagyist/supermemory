@@ -1,5 +1,6 @@
 import * as d3 from "d3-force"
 import type { GraphEdge, GraphNode } from "../types"
+import { FORCE_CONFIG } from "../constants"
 
 export class ForceSimulation {
 	private sim: d3.Simulation<GraphNode, GraphEdge> | null = null
@@ -10,40 +11,54 @@ export class ForceSimulation {
 		try {
 			this.sim = d3
 				.forceSimulation<GraphNode>(nodes)
-				.alphaDecay(0.04)
-				.alphaMin(0.001)
-				.velocityDecay(0.6)
+				.alphaDecay(FORCE_CONFIG.alphaDecay)
+				.alphaMin(FORCE_CONFIG.alphaMin)
+				.velocityDecay(FORCE_CONFIG.velocityDecay)
 
 			this.sim.force(
 				"link",
 				d3
 					.forceLink<GraphNode, GraphEdge>(edges)
 					.id((d) => d.id)
-					.distance((link) => (link.edgeType === "derives" ? 150 : 300))
+					.distance((link) =>
+						link.edgeType === "derives"
+							? FORCE_CONFIG.docMemoryDistance
+							: FORCE_CONFIG.linkDistance,
+					)
 					.strength((link) => {
-						if (link.edgeType === "derives") return 0.8
-						if (link.edgeType === "updates") return 1.0
-						if (link.edgeType === "extends") return 0.1
+						if (link.edgeType === "derives")
+							return FORCE_CONFIG.linkStrength.docMemory
+						if (link.edgeType === "updates")
+							return FORCE_CONFIG.linkStrength.version
+						if (link.edgeType === "extends")
+							return FORCE_CONFIG.linkStrength.docDocBase
 						return 0.3
 					}),
 			)
 
-			this.sim.force("charge", d3.forceManyBody<GraphNode>().strength(-1000))
+			this.sim.force(
+				"charge",
+				d3.forceManyBody<GraphNode>().strength(FORCE_CONFIG.chargeStrength),
+			)
 
 			this.sim.force(
 				"collide",
 				d3
 					.forceCollide<GraphNode>()
-					.radius((d) => (d.type === "document" ? 80 : 40))
+					.radius((d) =>
+						d.type === "document"
+							? FORCE_CONFIG.collisionRadius.document
+							: FORCE_CONFIG.collisionRadius.memory,
+					)
 					.strength(0.7),
 			)
 
-			this.sim.force("x", d3.forceX().strength(0.05))
-			this.sim.force("y", d3.forceY().strength(0.05))
+			this.sim.force("x", d3.forceX().strength(0.03))
+			this.sim.force("y", d3.forceY().strength(0.03))
 
 			this.sim.stop()
 			this.sim.alpha(1)
-			for (let i = 0; i < 100; i++) this.sim.tick()
+			for (let i = 0; i < FORCE_CONFIG.preSettleTicks; i++) this.sim.tick()
 			this.sim.alphaTarget(0).restart()
 		} catch (e) {
 			console.error("ForceSimulation.init failed:", e)
@@ -59,7 +74,7 @@ export class ForceSimulation {
 	}
 
 	reheat(): void {
-		this.sim?.alphaTarget(0.3).restart()
+		this.sim?.alphaTarget(FORCE_CONFIG.alphaTarget).restart()
 	}
 
 	coolDown(): void {
@@ -67,7 +82,7 @@ export class ForceSimulation {
 	}
 
 	isActive(): boolean {
-		return (this.sim?.alpha() ?? 0) > 0.001
+		return (this.sim?.alpha() ?? 0) > FORCE_CONFIG.alphaMin
 	}
 
 	destroy(): void {
