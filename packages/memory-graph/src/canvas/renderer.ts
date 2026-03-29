@@ -81,7 +81,7 @@ interface PreparedEdge {
 	endY: number
 	connected: boolean
 	style: { color: string; width: number; opacity: number }
-	isUpdates: boolean
+	edgeType: string
 	arrowSize: number
 }
 
@@ -155,7 +155,7 @@ function drawEdges(
 			endY: t.y - uy * tr,
 			connected,
 			style: edgeStyle(edge, colors),
-			isUpdates: edge.edgeType === "updates",
+			edgeType: edge.edgeType ?? "derives",
 			arrowSize:
 				edge.edgeType === "updates" ? Math.max(6, 8 * viewport.zoom) : 0,
 		})
@@ -165,7 +165,7 @@ function drawEdges(
 	edgeBatches.clear()
 	for (const e of prepared) {
 		const dimKey = hasDim ? (e.connected ? "|c" : "|d") : ""
-		const key = batchKey(e.style) + dimKey
+		const key = `${e.edgeType}|${batchKey(e.style)}${dimKey}`
 		let batch = edgeBatches.get(key)
 		if (!batch) {
 			batch = []
@@ -179,14 +179,23 @@ function drawEdges(
 		const first = batch[0]
 		if (!first) continue
 		const isDimmed = key.endsWith("|d")
+		const batchEdgeType = first.edgeType
 
-		// Draw subtle glow pass behind updates edges
-		const isUpdatesBatch = first.isUpdates
-		if (isUpdatesBatch && !isDimmed) {
+		// Draw subtle glow pass behind all edge types (stronger for updates)
+		if (!isDimmed) {
+			const glowAlpha =
+				batchEdgeType === "updates"
+					? first.style.opacity * 0.4
+					: first.style.opacity * 0.25
+			const glowWidth =
+				batchEdgeType === "updates"
+					? first.style.width + 2
+					: first.style.width + 1.5
 			ctx.save()
-			ctx.globalAlpha = first.style.opacity * 0.4
+			ctx.globalAlpha = glowAlpha
 			ctx.strokeStyle = first.style.color
-			ctx.lineWidth = first.style.width + 2
+			ctx.lineWidth = glowWidth
+			if (batchEdgeType === "extends") ctx.setLineDash([6, 4])
 			ctx.beginPath()
 			for (const e of batch) {
 				ctx.moveTo(e.startX, e.startY)
@@ -203,6 +212,9 @@ function drawEdges(
 		ctx.strokeStyle = first.style.color
 		ctx.lineWidth = first.style.width
 
+		// Extends edges use dashed lines
+		if (batchEdgeType === "extends") ctx.setLineDash([6, 4])
+
 		ctx.beginPath()
 		for (const e of batch) {
 			ctx.moveTo(e.startX, e.startY)
@@ -210,7 +222,10 @@ function drawEdges(
 		}
 		ctx.stroke()
 
-		if (isUpdatesBatch) {
+		if (batchEdgeType === "extends") ctx.setLineDash([])
+
+		// Arrowheads for updates edges
+		if (batchEdgeType === "updates") {
 			ctx.globalAlpha = isDimmed
 				? first.style.opacity * 0.6 * (1 - state.dimProgress * 0.8)
 				: first.style.opacity * 0.6
