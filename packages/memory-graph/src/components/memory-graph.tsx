@@ -79,10 +79,11 @@ export function MemoryGraph({
 		colors,
 	)
 
-	// Rebuild version chain index when documents change
-	useEffect(() => {
-		chainIndex.current.rebuild(limitedDocuments)
-	}, [limitedDocuments])
+	// Rebuild version chain index during render (not in an effect) so that
+	// the chain data is up-to-date when getChain() is called in useMemo below.
+	// rebuild() has an early-return guard (referential equality on documents)
+	// that makes this a no-op on re-renders where limitedDocuments hasn't changed.
+	chainIndex.current.rebuild(limitedDocuments)
 
 	// Smart simulation re-init: track node ID set, only init() when IDs change
 	const prevSimIdsRef = useRef<string>("")
@@ -494,6 +495,7 @@ export function MemoryGraph({
 		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [activeNodeData, viewportVersion])
 
+	// biome-ignore lint/correctness/useExhaustiveDependencies: limitedDocuments triggers re-computation after chainIndex.current.rebuild() runs with new data
 	const activeVersionChain = useMemo(() => {
 		if (!activeNodeData || activeNodeData.type !== "memory") return null
 		return chainIndex.current.getChain(activeNodeData.id)
