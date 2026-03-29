@@ -180,6 +180,7 @@ export function useGraphData(
 
 			if (docNode) {
 				docNode.data = docData
+				docNode.borderColor = colors.docStroke
 				docNode.isDragging = draggingNodeId === doc.id
 			} else {
 				docNode = {
