@@ -30,11 +30,11 @@ export function getMemoryBorderColor(
 export function getEdgeVisualProps(edgeType: string) {
 	switch (edgeType) {
 		case "derives":
-			return { opacity: 0.45, thickness: 1.2 }
+			return { opacity: 0.4, thickness: 1.2 }
 		case "updates":
 			return { opacity: 0.7, thickness: 2 }
 		case "extends":
-			return { opacity: 0.4, thickness: 1.2 }
+			return { opacity: 0.55, thickness: 1.5 }
 		default:
 			return { opacity: 0.4, thickness: 1.2 }
 	}

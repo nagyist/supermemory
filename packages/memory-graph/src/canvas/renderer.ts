@@ -59,11 +59,11 @@ function edgeStyle(
 	colors: GraphThemeColors,
 ): { color: string; width: number; opacity: number } {
 	if (edge.edgeType === "derives")
-		return { color: colors.edgeDerives, width: 1.2, opacity: 0.45 }
+		return { color: colors.edgeDerives, width: 1.2, opacity: 0.4 }
 	if (edge.edgeType === "updates")
 		return { color: colors.edgeUpdates, width: 2, opacity: 0.7 }
 	// "extends" and any unknown edge types
-	return { color: colors.edgeExtends, width: 1.2, opacity: 0.4 }
+	return { color: colors.edgeExtends, width: 1.5, opacity: 0.55 }
 }
 
 function batchKey(style: {
@@ -101,9 +101,9 @@ function drawEdges(
 	const prepared: PreparedEdge[] = []
 
 	for (const edge of edges) {
-		// Zoom-based edge culling for extends edges (low-priority visual)
+		// Zoom-based edge culling for extends edges at very low zoom
 		if (edge.edgeType === "extends") {
-			if (viewport.zoom < 0.3) continue
+			if (viewport.zoom < 0.08) continue
 		}
 
 		const src =
@@ -181,12 +181,12 @@ function drawEdges(
 		const isDimmed = key.endsWith("|d")
 		const batchEdgeType = first.edgeType
 
-		// Draw subtle glow pass behind all edge types (stronger for updates)
+		// Draw glow pass behind all edge types for luminous aesthetic
 		if (!isDimmed) {
 			const glowAlpha =
 				batchEdgeType === "updates"
 					? first.style.opacity * 0.4
-					: first.style.opacity * 0.25
+					: first.style.opacity * 0.3
 			const glowWidth =
 				batchEdgeType === "updates"
 					? first.style.width + 2

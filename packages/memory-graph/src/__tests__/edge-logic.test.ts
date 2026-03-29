@@ -633,10 +633,10 @@ describe("getEdgeVisualProps: all MemoryRelation values return valid visual prop
 		})
 	}
 
-	it("extends edges have lower opacity than derives edges (barely visible)", () => {
+	it("extends edges have higher opacity than derives edges (rare but meaningful)", () => {
 		const ext = getEdgeVisualProps("extends")
 		const der = getEdgeVisualProps("derives")
-		expect(ext.opacity).toBeLessThan(der.opacity)
+		expect(ext.opacity).toBeGreaterThan(der.opacity)
 	})
 
 	it("updates edges have higher opacity than derives edges (version chains are prominent)", () => {
@@ -647,7 +647,7 @@ describe("getEdgeVisualProps: all MemoryRelation values return valid visual prop
 
 	it("unknown edge type returns default props (opacity 0.4, thickness 1.2)", () => {
 		// The default case returns { opacity: 0.4, thickness: 1.2 }.
-		// A safe conservative fallback that doesn't match any specific known type.
+		// A safe conservative fallback matching derives (the most common edge type).
 		const unknown = getEdgeVisualProps("nonexistent")
 		expect(unknown.opacity).toBeCloseTo(0.4)
 		expect(unknown.thickness).toBeCloseTo(1.2)
