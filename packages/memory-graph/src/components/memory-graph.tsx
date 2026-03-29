@@ -497,7 +497,7 @@ export function MemoryGraph({
 	const activeVersionChain = useMemo(() => {
 		if (!activeNodeData || activeNodeData.type !== "memory") return null
 		return chainIndex.current.getChain(activeNodeData.id)
-	}, [activeNodeData])
+	}, [activeNodeData, limitedDocuments])
 
 	const isLoading = externalIsLoading
 
